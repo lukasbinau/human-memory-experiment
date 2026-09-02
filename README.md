@@ -1,6 +1,6 @@
 ---
 title: Human Memory Experiment
-emoji: test_tube
+emoji: 🧠
 colorFrom: blue
 colorTo: indigo
 sdk: docker
