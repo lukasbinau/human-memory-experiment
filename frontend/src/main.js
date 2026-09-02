@@ -21,7 +21,7 @@ function showWelcome() {
       <p class="intro">A short study of how people remember words and sequences. Your answers are anonymous and help us test the experiment.</p>
       <form id="welcome-form" class="welcome-form">
         <label for="participant-code">Create an anonymous participant ID</label>
-        <input id="participant-code" name="participant-code" maxlength="24" pattern="[A-Za-z0-9_-]+" placeholder="e.g. blue-birch-07" required />
+        <input id="participant-code" name="participant-code" maxlength="24" placeholder="e.g. blue-birch-07" required />
         <p class="muted">Do not use your name or email address.</p>
         <button type="submit">Begin experiment</button>
       </form>
@@ -31,6 +31,7 @@ function showWelcome() {
   document.querySelector('#welcome-form').addEventListener('submit', (event) => {
     event.preventDefault();
     participantCode = document.querySelector('#participant-code').value.trim();
+    if (!/^[A-Za-z0-9_-]+$/.test(participantCode)) return;
     showInstructions();
   });
 }
