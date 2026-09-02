@@ -12,6 +12,7 @@ let participantCode = '';
 let recalledWords = [];
 let recallStartedAt;
 let cardGameTimer;
+let recallFinishing = false;
 
 function addSkipButton(action) {
   document.querySelector('.skip-button')?.remove();
@@ -73,7 +74,12 @@ function showSerialConditionIntro() {
     articulatory_suppression: 'Repeat “la-la-la” while the digits are shown.',
     finger_tapping: 'Press the spacebar steadily while the digits are shown.',
   }[trial.condition] || 'Focus on the order. The digits will appear once.';
-  app.innerHTML = `<section class="panel narrow"><p class="kicker">${trial.label} · Trial ${conditionIndex + 1} / ${session.trials.length}</p><h1>${trial.length} digits.</h1><p class="intro small">${taskText}</p><button type="button" id="continue-serial-button">Continue</button></section>`;
+  const partName = {
+    capacity_and_errors: 'Capacity and error types',
+    chunking: 'Chunking',
+    secondary_tasks: 'Secondary tasks',
+  }[trial.part];
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Serial recall · ${partName} · Trial ${conditionIndex + 1} / ${session.trials.length}</p><h1>${trial.label}</h1><p class="intro small">${taskText}</p><button type="button" id="continue-serial-button">Continue</button></section>`;
   document.querySelector('#continue-serial-button').addEventListener('click', runSerialSequence);
   addSkipButton(runSerialSequence);
 }
@@ -99,7 +105,11 @@ function showDigit(index, trial) {
     showSerialRecallForm();
     return;
   }
-  app.innerHTML = `<section class="trial-screen"><p class="progress">Serial recall · Digit ${index + 1} / ${trial.length}</p><div class="word">${trial.sequence[index]}</div></section>`;
+  if (!document.querySelector('.trial-screen')) {
+    app.innerHTML = '<section class="trial-screen"><p class="progress"></p><div class="word"></div></section>';
+  }
+  document.querySelector('.progress').textContent = `Serial recall · Digit ${index + 1} / ${trial.length}`;
+  document.querySelector('.word').textContent = trial.sequence[index];
   addSkipButton(showSerialRecallForm);
   timer = window.setTimeout(() => showSerialBlank(index, trial), session.display_ms);
 }
@@ -109,7 +119,7 @@ function showSerialBlank(index, trial) {
     showSerialRecallForm();
     return;
   }
-  app.innerHTML = '<section class="trial-screen"></section>';
+  document.querySelector('.word').textContent = '';
   timer = window.setTimeout(() => showDigit(index + 1, trial), session.interval_ms);
 }
 
@@ -136,7 +146,33 @@ async function submitSerialRecall(event) {
 function showSerialResult(result) {
   const isLast = conditionIndex === session.trials.length - 1;
   app.innerHTML = `<section class="panel narrow results"><p class="kicker">Trial complete</p><h1>${result.positional_matches} of ${result.presented_length} positions correct.</h1><div class="score-grid"><div><span>Accuracy</span><strong>${Math.round(result.positional_accuracy * 100)}%</strong></div><div><span>Omissions</span><strong>${result.omissions}</strong></div><div><span>Errors</span><strong>${result.substitutions}</strong></div></div><button type="button" id="serial-next-button">${isLast ? 'Finish pilot' : 'Next trial'}</button></section>`;
-  document.querySelector('#serial-next-button').addEventListener('click', () => { if (isLast) showComplete(); else { conditionIndex += 1; showSerialConditionIntro(); } });
+  document.querySelector('#serial-next-button').addEventListener('click', () => {
+    if (isLast) {
+      showComplete();
+      return;
+    }
+    const currentPart = session.trials[conditionIndex].part;
+    conditionIndex += 1;
+    const nextPart = session.trials[conditionIndex].part;
+    if (nextPart !== currentPart) showSerialPartIntro(nextPart);
+    else showSerialConditionIntro();
+  });
+}
+
+function showSerialPartIntro(part) {
+  const partDetails = {
+    chunking: {
+      title: 'Chunking',
+      text: 'The same nine digits will be shown twice: once evenly and once in groups of three.',
+    },
+    secondary_tasks: {
+      title: 'Secondary tasks',
+      text: 'The next three trials compare memorizing alone with speaking and tapping while the digits appear.',
+    },
+  }[part];
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Next part</p><h1>${partDetails.title}</h1><p class="intro small">${partDetails.text}</p><button type="button" id="start-part-button">Continue</button></section>`;
+  document.querySelector('#start-part-button').addEventListener('click', showSerialConditionIntro);
+  addSkipButton(showSerialConditionIntro);
 }
 
 function showInstructions() {
@@ -300,6 +336,7 @@ function showRecallForm() {
   const condition = session.conditions[conditionIndex];
   recalledWords = [];
   recallStartedAt = performance.now();
+  recallFinishing = false;
   app.innerHTML = `
     <section class="panel narrow">
       <div class="recall-header"><p class="kicker">${condition.label} · Recall</p><div class="countdown" id="countdown">1:30</div></div>
@@ -348,7 +385,8 @@ function renderRememberedWords() {
 }
 
 async function finishRecall() {
-  if (!document.querySelector('#recall-form')) return;
+  if (!document.querySelector('#recall-form') || recallFinishing) return;
+  recallFinishing = true;
   window.clearInterval(timer);
   document.querySelector('.skip-button')?.remove();
   const condition = session.conditions[conditionIndex];
