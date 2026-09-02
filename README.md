@@ -1,3 +1,14 @@
+---
+title: Human Memory Experiment
+emoji: test_tube
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+license: mit
+short_description: DTU human memory experiment pilot
+---
+
 # Human Memory Experiment
 
 Pilot app for the DTU course 02464 Artificial Intelligence and Human Cognition.
