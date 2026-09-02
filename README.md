@@ -13,13 +13,17 @@ Pilot app for the DTU course 02464 Artificial Intelligence and Human Cognition.
 
 ## Local development
 
+Start the Python API from the repository root in one terminal:
+
+```text
+python -m uvicorn backend.app.main:app --reload --port 8000
+```
+
+If `python` is not available in your terminal, use the Python executable from your active environment instead. Then start the Vite frontend in a second terminal:
+
 ```text
 npm install
 npm run dev
 ```
 
-The Python API can be started separately with:
-
-```text
-python -m uvicorn backend.app.main:app --reload
-```
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current demo runs one baseline free-recall trial and sends trial generation and scoring requests to the Python API.
