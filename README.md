@@ -27,3 +27,14 @@ npm run dev
 ```
 
 Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current demo runs one baseline free-recall trial and sends trial generation and scoring requests to the Python API.
+
+## Supabase setup
+
+1. Create a new Supabase project.
+2. Open **SQL Editor** in the Supabase dashboard.
+3. Open `supabase/schema.sql` from this repository, copy its contents, and run it in the SQL Editor.
+4. Open **Project Settings > API**.
+5. Copy the project URL into `SUPABASE_URL` in a local `.env` file.
+6. Copy the `service_role` key into `SUPABASE_SERVICE_ROLE_KEY` in the same local `.env` file.
+
+The service-role key is a backend secret. Never put it in frontend code, commit it to Git, or share it in chat. The database tables have row-level security enabled; only the backend service role will write pilot data.
