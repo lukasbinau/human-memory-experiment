@@ -99,7 +99,7 @@ async function submitRecall(event) {
     const response = await fetch(`${apiUrl}/api/demo/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ presented_words: currentTrial.words, response: responseText }),
+      body: JSON.stringify({ session_id: currentTrial.session_id, presented_words: currentTrial.words, response: responseText }),
     });
     if (!response.ok) throw new Error('Could not score the response.');
     showResults(await response.json());

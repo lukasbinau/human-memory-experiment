@@ -26,7 +26,7 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current demo runs one baseline free-recall trial and sends trial generation and scoring requests to the Python API.
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current demo runs one baseline free-recall trial, sends trial generation and scoring requests to the Python API, and saves the session and completed trial in Supabase.
 
 ## Supabase setup
 

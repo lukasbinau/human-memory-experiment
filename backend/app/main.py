@@ -1,11 +1,17 @@
 from pathlib import Path
 import random
+from datetime import datetime, timezone
+from uuid import uuid4
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend.app.scoring.free_recall import score_response
+from backend.app.database.supabase_client import save_session, save_trial, complete_session
+
+load_dotenv()
 
 app = FastAPI(title="Human Memory Experiment API")
 
@@ -20,6 +26,7 @@ WORD_LIST_PATH = Path(__file__).resolve().parents[2] / "hukommelseseksperiment_3
 
 
 class ScoreRequest(BaseModel):
+    session_id: str
     presented_words: list[str]
     response: str
 
@@ -37,9 +44,37 @@ def health_check():
 @app.post("/api/demo/start")
 def start_demo_trial():
     words = random.sample(load_words(), 15)
-    return {"condition": "baseline", "words": words, "display_ms": 2000}
+    session_id = str(uuid4())
+    save_session({
+        "id": session_id,
+        "participant_code": f"pilot-{session_id[:8]}",
+        "protocol_version": "pilot-v1.0",
+        "random_seed": random.randint(0, 2**31 - 1),
+        "consent_given": True,
+    })
+    return {
+        "session_id": session_id,
+        "condition": "baseline",
+        "words": words,
+        "display_ms": 2000,
+    }
 
 
 @app.post("/api/demo/score")
 def score_demo_trial(request: ScoreRequest):
-    return score_response(request.presented_words, request.response)
+    result = score_response(request.presented_words, request.response)
+    save_trial({
+        "session_id": request.session_id,
+        "experiment_type": "free_recall",
+        "experiment_part": "demo",
+        "condition": "baseline",
+        "trial_number": 1,
+        "presented_sequence": request.presented_words,
+        "raw_response": request.response,
+        "normalized_response": request.response.strip().lower(),
+        "score": result,
+        "timing": {"display_ms": 2000},
+        "completed": True,
+    })
+    complete_session(request.session_id)
+    return result

@@ -31,3 +31,7 @@ create table if not exists trials (
 
 alter table sessions enable row level security;
 alter table trials enable row level security;
+
+grant usage on schema public to service_role;
+grant select, insert, update on table sessions to service_role;
+grant select, insert, update on table trials to service_role;

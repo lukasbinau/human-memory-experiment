@@ -29,3 +29,16 @@ def save_trial(trial: dict) -> dict:
     client = get_supabase_client()
     result = client.table("trials").insert(trial).execute()
     return result.data[0]
+
+
+def complete_session(session_id: str) -> dict:
+    from datetime import datetime, timezone
+
+    client = get_supabase_client()
+    result = (
+        client.table("sessions")
+        .update({"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", session_id)
+        .execute()
+    )
+    return result.data[0]
