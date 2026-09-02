@@ -29,6 +29,9 @@ class ScoreRequest(BaseModel):
     session_id: str
     presented_words: list[str]
     response: str
+    condition: str = "baseline"
+    trial_number: int = 1
+    timing: dict = {}
 
 
 def load_words() -> list[str]:
@@ -41,9 +44,7 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.post("/api/demo/start")
-def start_demo_trial():
-    words = random.sample(load_words(), 15)
+def create_session() -> str:
     session_id = str(uuid4())
     save_session({
         "id": session_id,
@@ -52,6 +53,13 @@ def start_demo_trial():
         "random_seed": random.randint(0, 2**31 - 1),
         "consent_given": True,
     })
+    return session_id
+
+
+@app.post("/api/demo/start")
+def start_demo_trial():
+    words = random.sample(load_words(), 15)
+    session_id = create_session()
     return {
         "session_id": session_id,
         "condition": "baseline",
@@ -60,21 +68,38 @@ def start_demo_trial():
     }
 
 
+@app.post("/api/pilot/start")
+def start_pilot():
+    session_id = create_session()
+    words = random.sample(load_words(), 60)
+    conditions = [
+        {"name": "baseline", "label": "Baseline", "display_ms": 2000, "post_task": "none"},
+        {"name": "fast", "label": "Fast presentation", "display_ms": 1000, "post_task": "none"},
+        {"name": "pause", "label": "Pause", "display_ms": 2000, "post_task": "pause"},
+        {"name": "working_memory", "label": "Memory game", "display_ms": 2000, "post_task": "card_game"},
+    ]
+    for index, condition in enumerate(conditions):
+        condition["words"] = words[index * 15 : (index + 1) * 15]
+        condition["trial_number"] = index + 1
+    return {"session_id": session_id, "conditions": conditions}
+
+
 @app.post("/api/demo/score")
 def score_demo_trial(request: ScoreRequest):
     result = score_response(request.presented_words, request.response)
     save_trial({
         "session_id": request.session_id,
         "experiment_type": "free_recall",
-        "experiment_part": "demo",
-        "condition": "baseline",
-        "trial_number": 1,
+        "experiment_part": "free_recall",
+        "condition": request.condition,
+        "trial_number": request.trial_number,
         "presented_sequence": request.presented_words,
         "raw_response": request.response,
         "normalized_response": request.response.strip().lower(),
         "score": result,
-        "timing": {"display_ms": 2000},
+        "timing": request.timing,
         "completed": True,
     })
-    complete_session(request.session_id)
+    if request.trial_number >= 4:
+        complete_session(request.session_id)
     return result
