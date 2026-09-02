@@ -11,13 +11,83 @@ function showWelcome() {
   app.innerHTML = `
     <section class="panel welcome">
       <p class="eyebrow">02464 Artificial Intelligence and Human Cognition</p>
-      <p class="kicker">Pilot study / free recall</p>
+      <p class="kicker">Pilot study</p>
       <h1>How much can you bring back?</h1>
-      <p class="intro">You will see 15 everyday Danish words in four short conditions. Afterwards, type every word you remember.</p>
-      <button type="button" id="begin-button">I understand, begin</button>
+      <p class="intro">Choose a pilot mode to try. Both modes save their results to the experiment database.</p>
+      <div class="mode-buttons"><button type="button" id="free-recall-button">Free recall</button><button type="button" id="serial-recall-button">Serial recall</button></div>
     </section>
   `;
-  document.querySelector('#begin-button').addEventListener('click', showInstructions);
+  document.querySelector('#free-recall-button').addEventListener('click', showInstructions);
+  document.querySelector('#serial-recall-button').addEventListener('click', showSerialInstructions);
+}
+
+function showSerialInstructions() {
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Pilot study / serial recall</p><h1>Hold the order.</h1><ol class="instructions"><li>A sequence of digits will appear one at a time.</li><li>Remember the digits in their exact order.</li><li>Type the complete sequence after it disappears.</li></ol><p class="muted">The pilot has six trials, from four to nine digits.</p><button type="button" id="start-serial-button">Start serial recall</button></section>`;
+  document.querySelector('#start-serial-button').addEventListener('click', startSerialPilot);
+}
+
+async function startSerialPilot() {
+  showLoading('Preparing serial recall');
+  try {
+    const response = await fetch(`${apiUrl}/api/serial/start`, { method: 'POST' });
+    if (!response.ok) throw new Error();
+    session = await response.json();
+    conditionIndex = 0;
+    showSerialConditionIntro();
+  } catch {
+    showError('The Python backend could not start serial recall. Check that it is running.');
+  }
+}
+
+function showSerialConditionIntro() {
+  const trial = session.trials[conditionIndex];
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Serial recall · Trial ${conditionIndex + 1} / ${session.trials.length}</p><h1>${trial.length} digits.</h1><p class="intro small">Focus on the order. The digits will appear once.</p><button type="button" id="continue-serial-button">Continue</button></section>`;
+  document.querySelector('#continue-serial-button').addEventListener('click', runSerialSequence);
+}
+
+function runSerialSequence() {
+  const trial = session.trials[conditionIndex];
+  showDigit(0, trial);
+}
+
+function showDigit(index, trial) {
+  if (index === trial.sequence.length) {
+    showSerialRecallForm();
+    return;
+  }
+  app.innerHTML = `<section class="trial-screen"><p class="progress">Serial recall · Digit ${index + 1} / ${trial.length}</p><div class="word">${trial.sequence[index]}</div></section>`;
+  timer = window.setTimeout(() => showSerialBlank(index, trial), session.display_ms);
+}
+
+function showSerialBlank(index, trial) {
+  if (index === trial.sequence.length - 1) {
+    showSerialRecallForm();
+    return;
+  }
+  app.innerHTML = '<section class="trial-screen"></section>';
+  timer = window.setTimeout(() => showDigit(index + 1, trial), session.interval_ms);
+}
+
+function showSerialRecallForm() {
+  window.clearTimeout(timer);
+  const trial = session.trials[conditionIndex];
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Serial recall · ${trial.length} digits</p><h1>Enter the sequence.</h1><p class="intro small">Type the digits in the order you saw them.</p><form id="serial-form"><label for="serial-response">Your sequence</label><input id="serial-response" inputmode="numeric" autocomplete="off" maxlength="12" autofocus /><div class="form-footer"><span class="muted">Digits only.</span><button type="submit">Submit sequence</button></div></form></section>`;
+  document.querySelector('#serial-form').addEventListener('submit', submitSerialRecall);
+}
+
+async function submitSerialRecall(event) {
+  event.preventDefault();
+  const trial = session.trials[conditionIndex];
+  const responseText = document.querySelector('#serial-response').value;
+  const response = await fetch(`${apiUrl}/api/serial/score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number }) });
+  if (!response.ok) { showError('The sequence could not be saved. Check that the Python backend is running.'); return; }
+  showSerialResult(await response.json());
+}
+
+function showSerialResult(result) {
+  const isLast = conditionIndex === session.trials.length - 1;
+  app.innerHTML = `<section class="panel narrow results"><p class="kicker">Trial complete</p><h1>${result.positional_matches} of ${result.presented_length} positions correct.</h1><div class="score-grid"><div><span>Accuracy</span><strong>${Math.round(result.positional_accuracy * 100)}%</strong></div><div><span>Omissions</span><strong>${result.omissions}</strong></div><div><span>Errors</span><strong>${result.substitutions}</strong></div></div><button type="button" id="serial-next-button">${isLast ? 'Finish pilot' : 'Next trial'}</button></section>`;
+  document.querySelector('#serial-next-button').addEventListener('click', () => { if (isLast) showComplete(); else { conditionIndex += 1; showSerialConditionIntro(); } });
 }
 
 function showInstructions() {

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend.app.scoring.free_recall import score_response
+from backend.app.scoring.serial_recall import score_response as score_serial_response
 from backend.app.database.supabase_client import save_session, save_trial, complete_session
 
 load_dotenv()
@@ -32,6 +33,14 @@ class ScoreRequest(BaseModel):
     condition: str = "baseline"
     trial_number: int = 1
     timing: dict = {}
+
+
+class SerialScoreRequest(BaseModel):
+    session_id: str
+    presented_sequence: str
+    response: str
+    trial_number: int
+    condition: str = "capacity"
 
 
 def load_words() -> list[str]:
@@ -101,5 +110,40 @@ def score_demo_trial(request: ScoreRequest):
         "completed": True,
     })
     if request.trial_number >= 4:
+        complete_session(request.session_id)
+    return result
+
+
+def generate_digits(length: int) -> str:
+    return "".join(str(random.randint(0, 9)) for _ in range(length))
+
+
+@app.post("/api/serial/start")
+def start_serial_pilot():
+    session_id = create_session()
+    trials = [
+        {"trial_number": index + 1, "length": length, "sequence": generate_digits(length)}
+        for index, length in enumerate(range(4, 10))
+    ]
+    return {"session_id": session_id, "trials": trials, "display_ms": 1000, "interval_ms": 500}
+
+
+@app.post("/api/serial/score")
+def score_serial_trial(request: SerialScoreRequest):
+    result = score_serial_response(request.presented_sequence, request.response)
+    save_trial({
+        "session_id": request.session_id,
+        "experiment_type": "serial_recall",
+        "experiment_part": "capacity_and_errors",
+        "condition": request.condition,
+        "trial_number": request.trial_number,
+        "presented_sequence": request.presented_sequence,
+        "raw_response": request.response,
+        "normalized_response": "".join(digit for digit in request.response if digit.isdigit()),
+        "score": result,
+        "timing": {"display_ms": 1000, "interval_ms": 500},
+        "completed": True,
+    })
+    if request.trial_number >= 6:
         complete_session(request.session_id)
     return result

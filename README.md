@@ -26,7 +26,9 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current demo runs one baseline free-recall trial, sends trial generation and scoring requests to the Python API, and saves the session and completed trial in Supabase.
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current pilot app offers free recall and serial recall modes, sends trial generation and scoring requests to the Python API, and saves sessions and completed trials in Supabase.
+
+The serial-recall pilot currently runs six capacity trials with sequence lengths 4, 5, 6, 7, 8, and 9 digits.
 
 ## Supabase setup
 
