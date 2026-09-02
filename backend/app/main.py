@@ -41,6 +41,8 @@ class SerialScoreRequest(BaseModel):
     response: str
     trial_number: int
     condition: str = "capacity"
+    experiment_part: str = "capacity_and_errors"
+    task_data: dict = {}
 
 
 def load_words() -> list[str]:
@@ -121,10 +123,45 @@ def generate_digits(length: int) -> str:
 @app.post("/api/serial/start")
 def start_serial_pilot():
     session_id = create_session()
-    trials = [
-        {"trial_number": index + 1, "length": length, "sequence": generate_digits(length)}
-        for index, length in enumerate(range(4, 10))
-    ]
+    trials = []
+    for index, length in enumerate(range(4, 10)):
+        trials.append({
+            "trial_number": index + 1,
+            "part": "capacity_and_errors",
+            "condition": "capacity",
+            "label": f"Capacity · {length} digits",
+            "length": length,
+            "sequence": generate_digits(length),
+        })
+
+    chunk_sequence = generate_digits(9)
+    trials.extend([
+        {
+            "trial_number": 7,
+            "part": "chunking",
+            "condition": "ungrouped",
+            "label": "Chunking · ungrouped",
+            "length": 9,
+            "sequence": chunk_sequence,
+        },
+        {
+            "trial_number": 8,
+            "part": "chunking",
+            "condition": "grouped",
+            "label": "Chunking · grouped",
+            "length": 9,
+            "sequence": chunk_sequence,
+        },
+    ])
+    for index, condition in enumerate(["control", "articulatory_suppression", "finger_tapping"]):
+        trials.append({
+            "trial_number": index + 9,
+            "part": "secondary_tasks",
+            "condition": condition,
+            "label": condition.replace("_", " ").title(),
+            "length": 8,
+            "sequence": generate_digits(8),
+        })
     return {"session_id": session_id, "trials": trials, "display_ms": 1000, "interval_ms": 500}
 
 
@@ -134,7 +171,7 @@ def score_serial_trial(request: SerialScoreRequest):
     save_trial({
         "session_id": request.session_id,
         "experiment_type": "serial_recall",
-        "experiment_part": "capacity_and_errors",
+        "experiment_part": request.experiment_part,
         "condition": request.condition,
         "trial_number": request.trial_number,
         "presented_sequence": request.presented_sequence,
@@ -142,8 +179,9 @@ def score_serial_trial(request: SerialScoreRequest):
         "normalized_response": "".join(digit for digit in request.response if digit.isdigit()),
         "score": result,
         "timing": {"display_ms": 1000, "interval_ms": 500},
+        "task_data": request.task_data,
         "completed": True,
     })
-    if request.trial_number >= 6:
+    if request.trial_number >= 11:
         complete_session(request.session_id)
     return result

@@ -6,6 +6,7 @@ const apiUrl = 'http://127.0.0.1:8000';
 let session;
 let conditionIndex = 0;
 let timer;
+let tapTimes = [];
 
 function showWelcome() {
   app.innerHTML = `
@@ -41,13 +42,28 @@ async function startSerialPilot() {
 
 function showSerialConditionIntro() {
   const trial = session.trials[conditionIndex];
-  app.innerHTML = `<section class="panel narrow"><p class="kicker">Serial recall · Trial ${conditionIndex + 1} / ${session.trials.length}</p><h1>${trial.length} digits.</h1><p class="intro small">Focus on the order. The digits will appear once.</p><button type="button" id="continue-serial-button">Continue</button></section>`;
+  const taskText = {
+    articulatory_suppression: 'Repeat “la-la-la” while the digits are shown.',
+    finger_tapping: 'Press the spacebar steadily while the digits are shown.',
+  }[trial.condition] || 'Focus on the order. The digits will appear once.';
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">${trial.label} · Trial ${conditionIndex + 1} / ${session.trials.length}</p><h1>${trial.length} digits.</h1><p class="intro small">${taskText}</p><button type="button" id="continue-serial-button">Continue</button></section>`;
   document.querySelector('#continue-serial-button').addEventListener('click', runSerialSequence);
 }
 
 function runSerialSequence() {
   const trial = session.trials[conditionIndex];
+  tapTimes = [];
+  if (trial.condition === 'finger_tapping') {
+    document.addEventListener('keydown', recordTap);
+  }
   showDigit(0, trial);
+}
+
+function recordTap(event) {
+  if (event.code === 'Space') {
+    event.preventDefault();
+    tapTimes.push(performance.now());
+  }
 }
 
 function showDigit(index, trial) {
@@ -79,7 +95,8 @@ async function submitSerialRecall(event) {
   event.preventDefault();
   const trial = session.trials[conditionIndex];
   const responseText = document.querySelector('#serial-response').value;
-  const response = await fetch(`${apiUrl}/api/serial/score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number }) });
+  document.removeEventListener('keydown', recordTap);
+  const response = await fetch(`${apiUrl}/api/serial/score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number, condition: trial.condition, experiment_part: trial.part, task_data: { tap_count: tapTimes.length } }) });
   if (!response.ok) { showError('The sequence could not be saved. Check that the Python backend is running.'); return; }
   showSerialResult(await response.json());
 }
