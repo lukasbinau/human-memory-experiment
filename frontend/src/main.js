@@ -1,7 +1,7 @@
 import './styles.css';
 
 const app = document.querySelector('#app');
-const apiUrl = 'http://127.0.0.1:8000';
+const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '');
 const testingMode = import.meta.env.DEV;
 
 let session;

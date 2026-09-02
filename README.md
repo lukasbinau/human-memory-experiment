@@ -30,6 +30,25 @@ Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current pilo
 
 The serial-recall pilot currently runs six capacity trials with sequence lengths 4, 5, 6, 7, 8, and 9 digits.
 
+## Hugging Face deployment
+
+The repository includes a `Dockerfile` that builds the Vite frontend and serves it from FastAPI on Hugging Face Spaces.
+
+1. Create a new Hugging Face Space named `human-memory-experiment`.
+2. Choose **Docker** as the Space SDK and choose the free hardware option.
+3. Upload or push this repository to the Space.
+4. In the Space, open **Settings > Variables and secrets**.
+5. Add these secrets:
+
+```text
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+```
+
+Use the same values as the local `.env` file. Do not put them in the repository or in the Dockerfile. The Space exposes port `7860`, which is the port used by the Dockerfile.
+
+The hosted frontend uses the same-origin `/api` path automatically. Local development continues to use `http://127.0.0.1:8000`.
+
 ## Supabase setup
 
 1. Create a new Supabase project.

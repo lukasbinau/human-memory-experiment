@@ -6,6 +6,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.app.scoring.free_recall import score_response
@@ -193,3 +194,8 @@ def score_serial_trial(request: SerialScoreRequest):
     if request.trial_number >= 15:
         complete_session(request.session_id)
     return result
+
+
+DIST_PATH = Path(__file__).resolve().parents[2] / "dist"
+if DIST_PATH.exists():
+    app.mount("/", StaticFiles(directory=DIST_PATH, html=True), name="frontend")
