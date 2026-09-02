@@ -33,6 +33,11 @@ class ScoreRequest(BaseModel):
     condition: str = "baseline"
     trial_number: int = 1
     timing: dict = {}
+    task_data: dict = {}
+
+
+class StartPilotRequest(BaseModel):
+    participant_code: str
 
 
 class SerialScoreRequest(BaseModel):
@@ -55,11 +60,11 @@ def health_check():
     return {"status": "ok"}
 
 
-def create_session() -> str:
+def create_session(participant_code: str) -> str:
     session_id = str(uuid4())
     save_session({
         "id": session_id,
-        "participant_code": f"pilot-{session_id[:8]}",
+        "participant_code": participant_code,
         "protocol_version": "pilot-v1.0",
         "random_seed": random.randint(0, 2**31 - 1),
         "consent_given": True,
@@ -70,7 +75,7 @@ def create_session() -> str:
 @app.post("/api/demo/start")
 def start_demo_trial():
     words = random.sample(load_words(), 15)
-    session_id = create_session()
+    session_id = create_session(f"demo-{uuid4().hex[:8]}")
     return {
         "session_id": session_id,
         "condition": "baseline",
@@ -80,8 +85,8 @@ def start_demo_trial():
 
 
 @app.post("/api/pilot/start")
-def start_pilot():
-    session_id = create_session()
+def start_pilot(request: StartPilotRequest):
+    session_id = create_session(request.participant_code)
     words = random.sample(load_words(), 60)
     conditions = [
         {"name": "baseline", "label": "Baseline", "display_ms": 2000, "post_task": "none"},
@@ -109,6 +114,7 @@ def score_demo_trial(request: ScoreRequest):
         "normalized_response": request.response.strip().lower(),
         "score": result,
         "timing": request.timing,
+        "task_data": request.task_data,
         "completed": True,
     })
     if request.trial_number >= 4:
@@ -122,7 +128,7 @@ def generate_digits(length: int) -> str:
 
 @app.post("/api/serial/start")
 def start_serial_pilot():
-    session_id = create_session()
+    session_id = create_session(f"serial-{uuid4().hex[:8]}")
     trials = []
     for index, length in enumerate(range(4, 10)):
         trials.append({

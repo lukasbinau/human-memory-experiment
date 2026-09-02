@@ -7,19 +7,32 @@ let session;
 let conditionIndex = 0;
 let timer;
 let tapTimes = [];
+let participantCode = '';
+let recalledWords = [];
+let recallStartedAt;
 
 function showWelcome() {
   app.innerHTML = `
-    <section class="panel welcome">
+    <section class="panel welcome loading-screen">
+      <div class="loading-mark" aria-hidden="true"></div>
       <p class="eyebrow">02464 Artificial Intelligence and Human Cognition</p>
       <p class="kicker">Pilot study</p>
       <h1>How much can you bring back?</h1>
-      <p class="intro">Choose a pilot mode to try. Both modes save their results to the experiment database.</p>
-      <div class="mode-buttons"><button type="button" id="free-recall-button">Free recall</button><button type="button" id="serial-recall-button">Serial recall</button></div>
+      <p class="intro">A short study of how people remember words and sequences. Your answers are anonymous and help us test the experiment.</p>
+      <form id="welcome-form" class="welcome-form">
+        <label for="participant-code">Create an anonymous participant ID</label>
+        <input id="participant-code" name="participant-code" maxlength="24" pattern="[A-Za-z0-9_-]+" placeholder="e.g. blue-birch-07" required />
+        <p class="muted">Do not use your name or email address.</p>
+        <button type="submit">Begin experiment</button>
+      </form>
     </section>
   `;
-  document.querySelector('#free-recall-button').addEventListener('click', showInstructions);
-  document.querySelector('#serial-recall-button').addEventListener('click', showSerialInstructions);
+  window.setTimeout(() => document.querySelector('.loading-mark')?.remove(), 500);
+  document.querySelector('#welcome-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    participantCode = document.querySelector('#participant-code').value.trim();
+    showInstructions();
+  });
 }
 
 function showSerialInstructions() {
@@ -128,7 +141,7 @@ function showInstructions() {
 async function startPilot() {
   showLoading('Preparing pilot');
   try {
-    const response = await fetch(`${apiUrl}/api/pilot/start`, { method: 'POST' });
+    const response = await fetch(`${apiUrl}/api/pilot/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ participant_code: participantCode }) });
     if (!response.ok) throw new Error();
     session = await response.json();
     conditionIndex = 0;
@@ -257,46 +270,78 @@ function showCardGame() {
 function showRecallForm() {
   window.clearTimeout(timer);
   const condition = session.conditions[conditionIndex];
+  recalledWords = [];
+  recallStartedAt = performance.now();
   app.innerHTML = `
     <section class="panel narrow">
-      <p class="kicker">${condition.label} · Recall</p>
+      <div class="recall-header"><p class="kicker">${condition.label} · Recall</p><div class="countdown" id="countdown">1:30</div></div>
       <h1>Which words came back?</h1>
-      <p class="intro small">Type all the words you remember. Separate words with spaces, commas, or new lines.</p>
+      <p class="intro small">Add one remembered word at a time. You can remove an entry before finishing.</p>
       <form id="recall-form">
+        <div id="remembered-words" class="remembered-words" aria-live="polite"><span class="muted">Your words will appear here.</span></div>
         <label for="recall-response">Your remembered words</label>
-        <textarea id="recall-response" rows="7" autofocus></textarea>
-        <div class="form-footer"><span class="muted">Take your best guess.</span><button type="submit">Submit recall</button></div>
+        <div class="word-entry"><input id="recall-response" autocomplete="off" autofocus /><button type="submit" aria-label="Add word">Add</button></div>
+        <div class="form-footer"><span class="muted">You have 90 seconds.</span><button type="button" id="finish-recall-button">Finish recall</button></div>
       </form>
     </section>
   `;
   document.querySelector('#recall-form').addEventListener('submit', submitRecall);
+  document.querySelector('#finish-recall-button').addEventListener('click', finishRecall);
+  timer = window.setInterval(updateRecallTimer, 1000);
 }
 
-async function submitRecall(event) {
+function updateRecallTimer() {
+  const remaining = Math.max(0, 90000 - (performance.now() - recallStartedAt));
+  const seconds = Math.ceil(remaining / 1000);
+  const countdown = document.querySelector('#countdown');
+  if (countdown) countdown.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  if (remaining === 0) finishRecall();
+}
+
+function submitRecall(event) {
   event.preventDefault();
-  const responseText = document.querySelector('#recall-response').value;
+  const input = document.querySelector('#recall-response');
+  const word = input.value.trim();
+  if (!word) return;
+  recalledWords.push({ word, submittedAt: Math.round(performance.now() - recallStartedAt) });
+  input.value = '';
+  input.focus();
+  renderRememberedWords();
+}
+
+function renderRememberedWords() {
+  const list = document.querySelector('#remembered-words');
+  list.innerHTML = recalledWords.length ? recalledWords.map((entry, index) => `<span class="word-chip">${entry.word}<button type="button" data-index="${index}" aria-label="Remove ${entry.word}">×</button></span>`).join('') : '<span class="muted">Your words will appear here.</span>';
+  list.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
+    recalledWords.splice(Number(button.dataset.index), 1);
+    renderRememberedWords();
+  }));
+}
+
+async function finishRecall() {
+  if (!document.querySelector('#recall-form')) return;
+  window.clearInterval(timer);
   const condition = session.conditions[conditionIndex];
-  const submitButton = event.target.querySelector('button');
-  submitButton.disabled = true;
-  submitButton.textContent = 'Saving...';
+  const rawResponse = recalledWords.map((entry) => entry.word).join(', ');
   try {
     const response = await fetch(`${apiUrl}/api/demo/score`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: session.session_id,
-        presented_words: condition.words,
-        response: responseText,
-        condition: condition.name,
-        trial_number: condition.trial_number,
-        timing: { display_ms: condition.display_ms, post_task: condition.post_task },
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: session.session_id, presented_words: condition.words, response: rawResponse, condition: condition.name, trial_number: condition.trial_number, timing: { display_ms: condition.display_ms, post_task: condition.post_task }, task_data: { submissions: recalledWords } }),
     });
     if (!response.ok) throw new Error();
-    showConditionResult(await response.json());
+    showConditionComplete();
   } catch {
     showError('The response could not be saved. Check that the Python backend is running.');
   }
+}
+
+function showConditionComplete() {
+  const isLast = conditionIndex === session.conditions.length - 1;
+  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Condition complete</p><h1>Thank you.</h1><p class="intro small">Your response has been saved.</p><button type="button" id="next-button">${isLast ? 'Finish pilot' : 'Continue'}</button></section>`;
+  document.querySelector('#next-button').addEventListener('click', () => {
+    if (isLast) showComplete();
+    else { conditionIndex += 1; showRest(startCondition); }
+  });
 }
 
 function showConditionResult(result) {

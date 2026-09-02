@@ -39,7 +39,8 @@ The free-recall experiment is designed to investigate:
 - Each noun contains 3–7 letters.
 - The app samples 60 distinct words from the approved 300-word CSV for each participant: 15 words for each of the four conditions.
 - A word may not repeat within one participant's session, but may be reused by another participant.
-- Participants freely type all words they remember after each sequence.
+- Participants submit remembered words one at a time after each sequence.
+- Submitted words are displayed above the input field and can be removed individually before recall is finished.
 - No answer options are shown. This reduces the possibility of guessing from a predefined list.
 
 ### 2.3 Experimental conditions
@@ -58,8 +59,9 @@ For the working-memory condition, the participant performs the nine-card memory 
 1. Show a 1-second fixation screen.
 2. Present 15 nouns sequentially at the condition-specific rate.
 3. After the final noun, either begin recall immediately, show the 15-second pause, or run the 15-second card game.
-4. Allow up to 90 seconds for the participant to type all remembered nouns in any order.
-5. End the trial when the participant submits or the response timer expires, and save the raw response with the presented sequence and condition metadata.
+4. Allow up to 90 seconds for recall. The countdown starts when the recall screen appears.
+5. The participant types one word and presses Enter to submit it. The word appears above the input field with a small remove button.
+6. End the trial when the participant presses `Finish recall` or the response timer expires, and save the submitted words, submission times, removals, and raw response data with the presented sequence and condition metadata.
 
 ### 2.5 Planned measurements
 
@@ -360,9 +362,9 @@ Supabase should be treated as the authoritative data store, with scheduled expor
 
 ### 6.16 Consent and participant safety
 
-**Pilot requirement:** Before starting, show a short information and consent screen explaining the purpose of the study, what participation involves, approximate duration, data collected, anonymity, voluntary participation, and the right to stop without penalty.
+**Pilot requirement:** Before starting, show a minimal information and consent screen explaining the purpose of the study, what participation involves, approximate duration, anonymous data collection, voluntary participation, and the right to stop without penalty. The screen should use plain language and avoid unnecessary institutional or legal text for this informal pilot.
 
-The app should collect only the information needed for the analysis, generate or accept an anonymous participant ID, provide a clear stop button, and show a completion message. Do not collect microphone data by default; if microphone-based compliance checking is used, request separate explicit consent and define retention and deletion rules.
+The participant creates an anonymous ID or code at the beginning of the session. The app should collect only the information needed for the analysis, provide a clear stop button, and show a completion message. Do not collect microphone data by default; if microphone-based compliance checking is used later, request separate explicit consent and define retention and deletion rules.
 
 The group should confirm the applicable DTU course and data-protection expectations with the course staff before collecting data outside the project group.
 
@@ -377,3 +379,60 @@ The following decisions are now recorded:
 5. The end-to-end pilot will be conducted later, after the app scaffolding and implementation are ready.
 
 This document should be updated whenever one of these decisions changes.
+
+## 8. Final App Interaction Decisions
+
+The following decisions define the intended participant-facing flow for the next app version.
+
+### 8.1 Loading and welcome screen
+
+1. Open the app on a white landing screen.
+2. Show a centered loading animation while the app loads its configuration and checks the backend connection.
+3. Once loading is complete, show the experiment title and short general instructions in the center of the page.
+4. At the bottom of the page, show a field labelled `Participant ID`.
+5. The participant enters a self-created anonymous code. They should not enter their real name.
+6. The `Begin experiment` button starts the session and saves the participant code.
+
+The loading animation must end automatically. It must not be used to hide a failed backend connection; a clear error message should be shown if the app cannot start a session.
+
+### 8.2 Experiment and condition start
+
+1. After `Begin experiment`, show a short introduction to the first experiment.
+2. Show a `Start` button before each timed condition.
+3. The timed trial begins only after the participant presses `Start`.
+4. Do not include a practice trial. The first real trial is preceded by instructions only.
+5. Show a rest screen between condition blocks and the planned two-minute break between the free-recall and serial-recall experiments.
+
+### 8.3 Free-recall response interface
+
+The recall screen contains these elements in this order:
+
+1. Condition name and a 90-second countdown.
+2. A list of submitted words above the input field.
+3. A single-word input field.
+4. A `Finish recall` button below the input field.
+
+When the participant presses Enter:
+
+- prevent form submission and page reload;
+- trim the entered word;
+- ignore an empty entry;
+- add the word to the visible list;
+- clear and refocus the input field;
+- save the submission time relative to the start of recall.
+
+Each submitted word has a small `x` button in its corner. Pressing it removes the word from the visible list and records the removal. The app should use a brief, subtle slide-and-fade animation when a word is added. The animation must not delay the next entry or affect the countdown.
+
+The submitted-word list remains visible because it helps participants avoid accidental duplicate entries. The raw submission history, including removed words, must still be saved for later inspection.
+
+When the participant presses `Finish recall`, or when the 90-second countdown reaches zero, the app saves the trial and advances. The app shows a completion message for the condition but does not show recall scores during the experiment. This prevents feedback from influencing later conditions.
+
+### 8.4 Participant-created IDs
+
+The participant-created ID is an anonymous code used to group records belonging to the same participant. The app should explain that the code must not contain a real name, email address, or other identifying information. The ID is saved with the session and every trial record.
+
+The app should validate that the field is not empty and should allow letters, numbers, hyphens, and underscores. The exact minimum and maximum length will be set during implementation.
+
+## 7. Analysis Reminder
+
+Before any data analysis begins, normalize the free-recall dataset using the finalized scoring rules. Preserve the original raw responses, create normalized response tokens, and document how capitalization, punctuation, whitespace, spelling variants, duplicates, and intrusions were handled. Do not overwrite the raw data.
