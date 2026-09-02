@@ -1,0 +1,1 @@
+-- Database schema will be added when the trial record format is implemented.
