@@ -2,6 +2,7 @@ import './styles.css';
 
 const app = document.querySelector('#app');
 const apiUrl = 'http://127.0.0.1:8000';
+const testingMode = import.meta.env.DEV;
 
 let session;
 let conditionIndex = 0;
@@ -10,6 +11,18 @@ let tapTimes = [];
 let participantCode = '';
 let recalledWords = [];
 let recallStartedAt;
+let cardGameTimer;
+
+function addSkipButton(action) {
+  document.querySelector('.skip-button')?.remove();
+  if (!testingMode) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'skip-button';
+  button.textContent = 'Skip';
+  button.addEventListener('click', action);
+  document.body.appendChild(button);
+}
 
 function showWelcome() {
   app.innerHTML = `
@@ -62,6 +75,7 @@ function showSerialConditionIntro() {
   }[trial.condition] || 'Focus on the order. The digits will appear once.';
   app.innerHTML = `<section class="panel narrow"><p class="kicker">${trial.label} · Trial ${conditionIndex + 1} / ${session.trials.length}</p><h1>${trial.length} digits.</h1><p class="intro small">${taskText}</p><button type="button" id="continue-serial-button">Continue</button></section>`;
   document.querySelector('#continue-serial-button').addEventListener('click', runSerialSequence);
+  addSkipButton(runSerialSequence);
 }
 
 function runSerialSequence() {
@@ -86,6 +100,7 @@ function showDigit(index, trial) {
     return;
   }
   app.innerHTML = `<section class="trial-screen"><p class="progress">Serial recall · Digit ${index + 1} / ${trial.length}</p><div class="word">${trial.sequence[index]}</div></section>`;
+  addSkipButton(showSerialRecallForm);
   timer = window.setTimeout(() => showSerialBlank(index, trial), session.display_ms);
 }
 
@@ -100,9 +115,11 @@ function showSerialBlank(index, trial) {
 
 function showSerialRecallForm() {
   window.clearTimeout(timer);
+  document.querySelector('.skip-button')?.remove();
   const trial = session.trials[conditionIndex];
   app.innerHTML = `<section class="panel narrow"><p class="kicker">Serial recall · ${trial.length} digits</p><h1>Enter the sequence.</h1><p class="intro small">Type the digits in the order you saw them.</p><form id="serial-form"><label for="serial-response">Your sequence</label><input id="serial-response" inputmode="numeric" autocomplete="off" maxlength="12" autofocus /><div class="form-footer"><span class="muted">Digits only.</span><button type="submit">Submit sequence</button></div></form></section>`;
   document.querySelector('#serial-form').addEventListener('submit', submitSerialRecall);
+  addSkipButton(() => submitSerialRecall({ preventDefault() {} }));
 }
 
 async function submitSerialRecall(event) {
@@ -110,6 +127,7 @@ async function submitSerialRecall(event) {
   const trial = session.trials[conditionIndex];
   const responseText = document.querySelector('#serial-response').value;
   document.removeEventListener('keydown', recordTap);
+  document.querySelector('.skip-button')?.remove();
   const response = await fetch(`${apiUrl}/api/serial/score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number, condition: trial.condition, experiment_part: trial.part, task_data: { tap_count: tapTimes.length } }) });
   if (!response.ok) { showError('The sequence could not be saved. Check that the Python backend is running.'); return; }
   showSerialResult(await response.json());
@@ -167,6 +185,7 @@ function showConditionIntro(condition, next) {
     </section>
   `;
   document.querySelector('#continue-button').addEventListener('click', next);
+  addSkipButton(next);
 }
 
 function runWordSequence() {
@@ -185,6 +204,7 @@ function showWord(index) {
       <div class="word">${condition.words[index]}</div>
     </section>
   `;
+  addSkipButton(() => finishConditionTask(condition));
   timer = window.setTimeout(() => showWord(index + 1), condition.display_ms);
 }
 
@@ -202,6 +222,7 @@ function finishConditionTask(condition) {
 function showTimedPause() {
   let secondsLeft = 15;
   app.innerHTML = `<section class="trial-screen"><p class="kicker light">Pause</p><div class="timer">${secondsLeft}</div></section>`;
+  addSkipButton(showRecallForm);
   timer = window.setInterval(() => {
     secondsLeft -= 1;
     const timerElement = document.querySelector('.timer');
@@ -237,6 +258,11 @@ function showCardGame() {
       showRecallForm();
     }
   }, 1000);
+  cardGameTimer = gameTimer;
+  addSkipButton(() => {
+    window.clearInterval(cardGameTimer);
+    showRecallForm();
+  });
 
   document.querySelectorAll('.memory-card').forEach((button) => {
     button.addEventListener('click', () => {
@@ -270,6 +296,7 @@ function showCardGame() {
 
 function showRecallForm() {
   window.clearTimeout(timer);
+  window.clearInterval(cardGameTimer);
   const condition = session.conditions[conditionIndex];
   recalledWords = [];
   recallStartedAt = performance.now();
@@ -289,6 +316,7 @@ function showRecallForm() {
   document.querySelector('#recall-form').addEventListener('submit', submitRecall);
   document.querySelector('#finish-recall-button').addEventListener('click', finishRecall);
   timer = window.setInterval(updateRecallTimer, 1000);
+  addSkipButton(finishRecall);
 }
 
 function updateRecallTimer() {
@@ -322,6 +350,7 @@ function renderRememberedWords() {
 async function finishRecall() {
   if (!document.querySelector('#recall-form')) return;
   window.clearInterval(timer);
+  document.querySelector('.skip-button')?.remove();
   const condition = session.conditions[conditionIndex];
   const rawResponse = recalledWords.map((entry) => entry.word).join(', ');
   try {
@@ -358,6 +387,10 @@ function showBreakBeforeSerial() {
     window.clearInterval(breakTimer);
     startSerialPilot();
   });
+  addSkipButton(() => {
+    window.clearInterval(breakTimer);
+    startSerialPilot();
+  });
 }
 
 function showConditionResult(result) {
@@ -383,6 +416,7 @@ function showConditionResult(result) {
 function showRest(next) {
   app.innerHTML = `<section class="panel centered"><p class="kicker">Take a short rest</p><h1>Ready for the next condition?</h1><p class="muted">Take at least 30 seconds if you need it.</p><button type="button" id="rest-button">Continue</button></section>`;
   document.querySelector('#rest-button').addEventListener('click', next);
+  addSkipButton(next);
 }
 
 function showComplete() {

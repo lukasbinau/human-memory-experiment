@@ -113,6 +113,8 @@ button:hover {
 }
 
 button:disabled { opacity: 0.6; cursor: wait; }
+.skip-button { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 20; min-height: 2.5rem; padding: 0.55rem 1rem; border: 1px solid currentColor; border-radius: 999px; color: #a7bba9; background: transparent; font-family: Arial, sans-serif; font-size: 0.8rem; }
+.skip-button:hover { color: #f4f0e8; background: rgba(167, 187, 169, 0.12); }
 
 @media (max-width: 600px) {
   .panel { padding: 10vh 7vw; }
