@@ -50,6 +50,10 @@ class SerialScoreRequest(BaseModel):
     task_data: dict = {}
 
 
+class StartSerialRequest(BaseModel):
+    session_id: str | None = None
+
+
 def load_words() -> list[str]:
     lines = WORD_LIST_PATH.read_text(encoding="utf-8-sig").splitlines()
     return [line.strip() for line in lines[1:] if line.strip()]
@@ -117,8 +121,6 @@ def score_demo_trial(request: ScoreRequest):
         "task_data": request.task_data,
         "completed": True,
     })
-    if request.trial_number >= 4:
-        complete_session(request.session_id)
     return result
 
 
@@ -127,12 +129,12 @@ def generate_digits(length: int) -> str:
 
 
 @app.post("/api/serial/start")
-def start_serial_pilot():
-    session_id = create_session(f"serial-{uuid4().hex[:8]}")
+def start_serial_pilot(request: StartSerialRequest | None = None):
+    session_id = request.session_id if request and request.session_id else create_session(f"serial-{uuid4().hex[:8]}")
     trials = []
     for index, length in enumerate(range(4, 10)):
         trials.append({
-            "trial_number": index + 1,
+            "trial_number": index + 5,
             "part": "capacity_and_errors",
             "condition": "capacity",
             "label": f"Capacity · {length} digits",
@@ -143,7 +145,7 @@ def start_serial_pilot():
     chunk_sequence = generate_digits(9)
     trials.extend([
         {
-            "trial_number": 7,
+            "trial_number": 11,
             "part": "chunking",
             "condition": "ungrouped",
             "label": "Chunking · ungrouped",
@@ -151,7 +153,7 @@ def start_serial_pilot():
             "sequence": chunk_sequence,
         },
         {
-            "trial_number": 8,
+            "trial_number": 12,
             "part": "chunking",
             "condition": "grouped",
             "label": "Chunking · grouped",
@@ -161,7 +163,7 @@ def start_serial_pilot():
     ])
     for index, condition in enumerate(["control", "articulatory_suppression", "finger_tapping"]):
         trials.append({
-            "trial_number": index + 9,
+            "trial_number": index + 13,
             "part": "secondary_tasks",
             "condition": condition,
             "label": condition.replace("_", " ").title(),
@@ -188,6 +190,6 @@ def score_serial_trial(request: SerialScoreRequest):
         "task_data": request.task_data,
         "completed": True,
     })
-    if request.trial_number >= 11:
+    if request.trial_number >= 15:
         complete_session(request.session_id)
     return result

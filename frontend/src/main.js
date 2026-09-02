@@ -44,7 +44,7 @@ function showSerialInstructions() {
 async function startSerialPilot() {
   showLoading('Preparing serial recall');
   try {
-    const response = await fetch(`${apiUrl}/api/serial/start`, { method: 'POST' });
+    const response = await fetch(`${apiUrl}/api/serial/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id }) });
     if (!response.ok) throw new Error();
     session = await response.json();
     conditionIndex = 0;
@@ -338,10 +338,25 @@ async function finishRecall() {
 
 function showConditionComplete() {
   const isLast = conditionIndex === session.conditions.length - 1;
-  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Condition complete</p><h1>Thank you.</h1><p class="intro small">Your response has been saved.</p><button type="button" id="next-button">${isLast ? 'Finish pilot' : 'Continue'}</button></section>`;
+  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Condition complete</p><h1>Thank you.</h1><p class="intro small">Your response has been saved.</p><button type="button" id="next-button">${isLast ? 'Take a 2-minute break' : 'Continue'}</button></section>`;
   document.querySelector('#next-button').addEventListener('click', () => {
-    if (isLast) showComplete();
+    if (isLast) showBreakBeforeSerial();
     else { conditionIndex += 1; showRest(startCondition); }
+  });
+}
+
+function showBreakBeforeSerial() {
+  app.innerHTML = `<section class="panel centered"><p class="kicker">Free recall complete</p><h1>Take a 2-minute break.</h1><p class="intro small">The serial-recall experiment will begin afterwards.</p><div class="break-timer" id="break-timer">2:00</div><button type="button" id="begin-serial-button">Begin serial recall</button></section>`;
+  let secondsLeft = 120;
+  const breakTimer = window.setInterval(() => {
+    secondsLeft -= 1;
+    const timerElement = document.querySelector('#break-timer');
+    if (timerElement) timerElement.textContent = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+    if (secondsLeft === 0) window.clearInterval(breakTimer);
+  }, 1000);
+  document.querySelector('#begin-serial-button').addEventListener('click', () => {
+    window.clearInterval(breakTimer);
+    startSerialPilot();
   });
 }
 
@@ -371,7 +386,7 @@ function showRest(next) {
 }
 
 function showComplete() {
-  app.innerHTML = `<section class="panel narrow"><p class="kicker">Pilot complete</p><h1>Thank you.</h1><p class="intro small">Your four trial records have been saved. You can close this window.</p></section>`;
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Pilot complete</p><h1>Thank you.</h1><p class="intro small">Your free-recall and serial-recall records have been saved. You can close this window.</p></section>`;
 }
 
 function showLoading(message) {
