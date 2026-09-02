@@ -32,11 +32,11 @@ function showWelcome() {
       <p class="eyebrow">02464 Artificial Intelligence and Human Cognition</p>
       <p class="kicker">Pilot study</p>
       <h1>How much can you bring back?</h1>
-      <p class="intro">A short study of how people remember words and sequences. Your answers are anonymous and help us test the experiment.</p>
+      <p class="intro">A short study of how people remember words and sequences. Your answers help us test the experiment and will be linked to your name.</p>
       <form id="welcome-form" class="welcome-form">
-        <label for="participant-code">Create an anonymous participant ID</label>
-        <input id="participant-code" name="participant-code" maxlength="24" placeholder="e.g. blue-birch-07" required />
-        <p class="muted">Do not use your name or email address.</p>
+        <label for="participant-name">Your name</label>
+        <input id="participant-name" name="participant-name" maxlength="80" autocomplete="name" placeholder="Enter your full name" required />
+        <p class="muted">Your name is stored so we can identify your results.</p>
         <button type="submit">Begin experiment</button>
       </form>
     </section>
@@ -44,8 +44,7 @@ function showWelcome() {
   window.setTimeout(() => document.querySelector('.loading-mark')?.remove(), 500);
   document.querySelector('#welcome-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    participantCode = document.querySelector('#participant-code').value.trim();
-    if (!/^[A-Za-z0-9_-]+$/.test(participantCode)) return;
+    participantCode = document.querySelector('#participant-name').value.trim();
     showInstructions();
   });
 }
@@ -186,7 +185,7 @@ function showInstructions() {
         <li>Type all remembered words after each list.</li>
         <li>There is a short rest between conditions.</li>
       </ol>
-      <p class="muted">This pilot is anonymous. You can stop at any time.</p>
+      <p class="muted">Your name will be stored with your results. You can stop at any time.</p>
       <button type="button" id="start-button">Start pilot</button>
     </section>
   `;

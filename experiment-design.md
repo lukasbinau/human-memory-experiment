@@ -164,7 +164,7 @@ The tapping task should remain simple and regular. A complex tapping sequence co
 
 For every trial, the app should save enough information to reproduce the planned analyses. At minimum, this includes:
 
-- Anonymous participant identifier.
+- Participant name supplied at the beginning of the session.
 - Experiment type: free recall or serial recall.
 - Experiment part and condition.
 - Trial number.
@@ -356,15 +356,15 @@ Because one response can contain several error types, the scoring report should 
 
 **Decided direction:** Supabase for the database and Hugging Face for hosting. The exact technology stack will be selected after the project scaffolding is complete.
 
-The implementation should keep the database contract independent of the user interface. Store raw trial records, derived scoring records, app version, and experiment configuration separately where practical. Use anonymous participant codes rather than names, restrict database access with row-level security, and never expose service-role credentials in the client application.
+The implementation should keep the database contract independent of the user interface. Store raw trial records, derived scoring records, app version, and experiment configuration separately where practical. Store the participant's supplied name with the session so results can be identified, restrict database access with row-level security, and never expose service-role credentials in the client application.
 
 Supabase should be treated as the authoritative data store, with scheduled exports or a controlled backup process. Hugging Face hosting should be checked for the chosen framework, client-side timing behaviour, microphone permissions, and database-secret handling before committing to it.
 
 ### 6.16 Consent and participant safety
 
-**Pilot requirement:** Before starting, show a minimal information and consent screen explaining the purpose of the study, what participation involves, approximate duration, anonymous data collection, voluntary participation, and the right to stop without penalty. The screen should use plain language and avoid unnecessary institutional or legal text for this informal pilot.
+**Pilot requirement:** Before starting, show a minimal information and consent screen explaining the purpose of the study, what participation involves, approximate duration, that the participant's name and results are stored together, voluntary participation, and the right to stop without penalty. The screen should use plain language and avoid unnecessary institutional or legal text for this informal pilot.
 
-The participant creates an anonymous ID or code at the beginning of the session. The app should collect only the information needed for the analysis, provide a clear stop button, and show a completion message. Do not collect microphone data by default; if microphone-based compliance checking is used later, request separate explicit consent and define retention and deletion rules.
+The participant enters their actual name at the beginning of the session. The app should collect only the information needed for the analysis, provide a clear stop button, and show a completion message. Do not collect microphone data by default; if microphone-based compliance checking is used later, request separate explicit consent and define retention and deletion rules.
 
 The group should confirm the applicable DTU course and data-protection expectations with the course staff before collecting data outside the project group.
 
@@ -389,9 +389,9 @@ The following decisions define the intended participant-facing flow for the next
 1. Open the app on a white landing screen.
 2. Show a centered loading animation while the app loads its configuration and checks the backend connection.
 3. Once loading is complete, show the experiment title and short general instructions in the center of the page.
-4. At the bottom of the page, show a field labelled `Participant ID`.
-5. The participant enters a self-created anonymous code. They should not enter their real name.
-6. The `Begin experiment` button starts the session and saves the participant code.
+4. At the bottom of the page, show a field labelled `Your name`.
+5. The participant enters their actual name.
+6. The `Begin experiment` button starts the session and saves the participant name.
 
 The loading animation must end automatically. It must not be used to hide a failed backend connection; a clear error message should be shown if the app cannot start a session.
 
@@ -427,9 +427,9 @@ The submitted-word list remains visible because it helps participants avoid acci
 
 When the participant presses `Finish recall`, or when the 90-second countdown reaches zero, the app saves the trial and advances. The app shows a completion message for the condition but does not show recall scores during the experiment. This prevents feedback from influencing later conditions.
 
-### 8.4 Participant-created IDs
+### 8.4 Participant names
 
-The participant-created ID is an anonymous code used to group records belonging to the same participant. The app should explain that the code must not contain a real name, email address, or other identifying information. The ID is saved with the session and every trial record.
+The participant name is used to identify which results belong to which participant. The app should explain that the name is saved with the session and its trial records. The current database column is named `participant_code` for backward compatibility, but it stores the participant's supplied name.
 
 The app should validate that the field is not empty and should allow letters, numbers, hyphens, and underscores. The exact minimum and maximum length will be set during implementation.
 
