@@ -13,6 +13,7 @@ let recalledWords = [];
 let recallStartedAt;
 let cardGameTimer;
 let recallFinishing = false;
+let resumeAction = () => showWelcome();
 
 function addSkipButton(action) {
   document.querySelector('.skip-button')?.remove();
@@ -25,7 +26,42 @@ function addSkipButton(action) {
   document.body.appendChild(button);
 }
 
+function showStopControl() {
+  if (document.querySelector('.stop-button')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'stop-button';
+  button.textContent = 'Stop';
+  button.addEventListener('click', showStopConfirm);
+  document.body.appendChild(button);
+}
+
+function hideStopControl() {
+  document.querySelector('.stop-button')?.remove();
+}
+
+function showStopConfirm() {
+  window.clearTimeout(timer);
+  window.clearInterval(timer);
+  window.clearInterval(cardGameTimer);
+  document.removeEventListener('keydown', recordTap);
+  document.querySelector('.skip-button')?.remove();
+  hideStopControl();
+  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Stop experiment</p><h1>Stop now?</h1><p class="intro small">If you stop, no further answers will be saved for this session. If you continue, this step will restart from the beginning.</p><div class="stop-actions"><button type="button" id="stop-confirm-no">No, continue</button><button type="button" id="stop-confirm-yes" class="secondary-button">Yes, stop</button></div></section>`;
+  document.querySelector('#stop-confirm-yes').addEventListener('click', endSessionStopped);
+  document.querySelector('#stop-confirm-no').addEventListener('click', () => {
+    showStopControl();
+    resumeAction();
+  });
+}
+
+function endSessionStopped() {
+  hideStopControl();
+  app.innerHTML = '<section class="panel narrow"><p class="kicker">Session stopped</p><h1>Thank you.</h1><p class="intro small">You stopped the experiment early. The answers you already submitted have been saved. You can close this window.</p></section>';
+}
+
 function showWelcome() {
+  hideStopControl();
   app.innerHTML = `
     <section class="panel welcome loading-screen">
       <div class="loading-mark" aria-hidden="true"></div>
@@ -49,11 +85,6 @@ function showWelcome() {
   });
 }
 
-function showSerialInstructions() {
-  app.innerHTML = `<section class="panel narrow"><p class="kicker">Pilot study / serial recall</p><h1>Hold the order.</h1><ol class="instructions"><li>A sequence of digits will appear one at a time.</li><li>Remember the digits in their exact order.</li><li>Type the complete sequence after it disappears.</li></ol><p class="muted">The pilot has six trials, from four to nine digits.</p><button type="button" id="start-serial-button">Start serial recall</button></section>`;
-  document.querySelector('#start-serial-button').addEventListener('click', startSerialPilot);
-}
-
 async function startSerialPilot() {
   showLoading('Preparing serial recall');
   try {
@@ -68,6 +99,8 @@ async function startSerialPilot() {
 }
 
 function showSerialConditionIntro() {
+  resumeAction = showSerialConditionIntro;
+  showStopControl();
   const trial = session.trials[conditionIndex];
   const taskText = {
     articulatory_suppression: 'Repeat “la-la-la” while the digits are shown.',
@@ -107,7 +140,7 @@ function showDigit(index, trial) {
   if (!document.querySelector('.trial-screen')) {
     app.innerHTML = '<section class="trial-screen"><p class="progress"></p><div class="word"></div></section>';
   }
-  document.querySelector('.progress').textContent = `Serial recall · Digit ${index + 1} / ${trial.length}`;
+  document.querySelector('.progress').textContent = `Trial ${conditionIndex + 1} / ${session.trials.length} · Digit ${index + 1} / ${trial.length}`;
   document.querySelector('.word').textContent = trial.sequence[index];
   addSkipButton(showSerialRecallForm);
   timer = window.setTimeout(() => showSerialBlank(index, trial), session.display_ms);
@@ -127,7 +160,7 @@ function showSerialRecallForm() {
   window.clearTimeout(timer);
   document.querySelector('.skip-button')?.remove();
   const trial = session.trials[conditionIndex];
-  app.innerHTML = `<section class="panel narrow"><p class="kicker">Serial recall · ${trial.length} digits</p><h1>Enter the sequence.</h1><p class="intro small">Type the digits in the order you saw them.</p><form id="serial-form"><label for="serial-response">Your sequence</label><input id="serial-response" inputmode="numeric" autocomplete="off" maxlength="12" autofocus /><div class="form-footer"><span class="muted">Digits only.</span><button type="submit">Submit sequence</button></div></form></section>`;
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Trial ${conditionIndex + 1} / ${session.trials.length} · ${trial.length} digits</p><h1>Enter the sequence.</h1><p class="intro small">Type the digits in the order you saw them.</p><form id="serial-form"><label for="serial-response">Your sequence</label><input id="serial-response" inputmode="numeric" autocomplete="off" maxlength="12" autofocus /><div class="form-footer"><span class="muted">Digits only.</span><button type="submit">Submit sequence</button></div></form></section>`;
   document.querySelector('#serial-form').addEventListener('submit', submitSerialRecall);
   addSkipButton(() => submitSerialRecall({ preventDefault() {} }));
 }
@@ -145,7 +178,7 @@ async function submitSerialRecall(event) {
 
 function showSerialResult(result) {
   const isLast = conditionIndex === session.trials.length - 1;
-  app.innerHTML = `<section class="panel narrow results"><p class="kicker">Trial complete</p><h1>${result.positional_matches} of ${result.presented_length} positions correct.</h1><div class="score-grid"><div><span>Accuracy</span><strong>${Math.round(result.positional_accuracy * 100)}%</strong></div><div><span>Omissions</span><strong>${result.omissions}</strong></div><div><span>Errors</span><strong>${result.substitutions}</strong></div></div><button type="button" id="serial-next-button">${isLast ? 'Finish pilot' : 'Next trial'}</button></section>`;
+  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Trial ${conditionIndex + 1} / ${session.trials.length} complete</p><h1>Thank you.</h1><p class="intro small">Your response has been saved.</p><button type="button" id="serial-next-button">${isLast ? 'Finish pilot' : 'Next trial'}</button></section>`;
   document.querySelector('#serial-next-button').addEventListener('click', () => {
     if (isLast) {
       showComplete();
@@ -170,12 +203,15 @@ function showSerialPartIntro(part) {
       text: 'The next three trials compare memorizing alone with speaking and tapping while the digits appear.',
     },
   }[part];
+  resumeAction = () => showSerialPartIntro(part);
   app.innerHTML = `<section class="panel narrow"><p class="kicker">Next part</p><h1>${partDetails.title}</h1><p class="intro small">${partDetails.text}</p><button type="button" id="start-part-button">Continue</button></section>`;
   document.querySelector('#start-part-button').addEventListener('click', showSerialConditionIntro);
   addSkipButton(showSerialConditionIntro);
 }
 
 function showInstructions() {
+  resumeAction = showInstructions;
+  showStopControl();
   app.innerHTML = `
     <section class="panel narrow">
       <p class="kicker">Before we start</p>
@@ -212,6 +248,7 @@ function startCondition() {
 }
 
 function showConditionIntro(condition, next) {
+  resumeAction = () => showConditionIntro(condition, next);
   app.innerHTML = `
     <section class="panel narrow">
       <p class="kicker">Condition ${conditionIndex + 1} / ${session.conditions.length}</p>
@@ -236,7 +273,7 @@ function showWord(index) {
   }
   app.innerHTML = `
     <section class="trial-screen">
-      <p class="progress">${condition.label} · Word ${index + 1} / ${condition.words.length}</p>
+      <p class="progress">Condition ${conditionIndex + 1} / ${session.conditions.length} · Word ${index + 1} / ${condition.words.length}</p>
       <div class="word">${condition.words[index]}</div>
     </section>
   `;
@@ -257,7 +294,7 @@ function finishConditionTask(condition) {
 
 function showTimedPause() {
   let secondsLeft = 15;
-  app.innerHTML = `<section class="trial-screen"><p class="kicker light">Pause</p><div class="timer">${secondsLeft}</div></section>`;
+  app.innerHTML = `<section class="trial-screen"><p class="kicker light">Condition ${conditionIndex + 1} / ${session.conditions.length} · Pause</p><div class="timer">${secondsLeft}</div></section>`;
   addSkipButton(showRecallForm);
   timer = window.setInterval(() => {
     secondsLeft -= 1;
@@ -279,7 +316,7 @@ function showCardGame() {
 
   app.innerHTML = `
     <section class="panel game-panel">
-      <p class="kicker">Memory game · <span id="game-timer">${secondsLeft}</span></p>
+      <p class="kicker">Condition ${conditionIndex + 1} / ${session.conditions.length} · Memory game · <span id="game-timer">${secondsLeft}</span></p>
       <h1>Find matching pairs.</h1>
       <div class="card-grid">${cards.map((_, index) => `<button class="memory-card" data-index="${index}" type="button">?</button>`).join('')}</div>
     </section>
@@ -339,7 +376,7 @@ function showRecallForm() {
   recallFinishing = false;
   app.innerHTML = `
     <section class="panel narrow">
-      <div class="recall-header"><p class="kicker">${condition.label} · Recall</p><div class="countdown" id="countdown">1:30</div></div>
+      <div class="recall-header"><p class="kicker">Condition ${conditionIndex + 1} / ${session.conditions.length} · Recall</p><div class="countdown" id="countdown">1:30</div></div>
       <h1>Which words came back?</h1>
       <p class="intro small">Add one remembered word at a time. You can remove an entry before finishing.</p>
       <form id="recall-form">
@@ -404,6 +441,7 @@ async function finishRecall() {
 }
 
 function showConditionComplete() {
+  resumeAction = showConditionComplete;
   const isLast = conditionIndex === session.conditions.length - 1;
   app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Condition complete</p><h1>Thank you.</h1><p class="intro small">Your response has been saved.</p><button type="button" id="next-button">${isLast ? 'Take a 2-minute break' : 'Continue'}</button></section>`;
   document.querySelector('#next-button').addEventListener('click', () => {
@@ -413,51 +451,34 @@ function showConditionComplete() {
 }
 
 function showBreakBeforeSerial() {
+  resumeAction = showBreakBeforeSerial;
   app.innerHTML = `<section class="panel centered"><p class="kicker">Free recall complete</p><h1>Take a 2-minute break.</h1><p class="intro small">The serial-recall experiment will begin afterwards.</p><div class="break-timer" id="break-timer">2:00</div><button type="button" id="begin-serial-button">Begin serial recall</button></section>`;
   let secondsLeft = 120;
-  const breakTimer = window.setInterval(() => {
+  timer = window.setInterval(() => {
     secondsLeft -= 1;
     const timerElement = document.querySelector('#break-timer');
     if (timerElement) timerElement.textContent = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
-    if (secondsLeft === 0) window.clearInterval(breakTimer);
+    if (secondsLeft === 0) window.clearInterval(timer);
   }, 1000);
   document.querySelector('#begin-serial-button').addEventListener('click', () => {
-    window.clearInterval(breakTimer);
+    window.clearInterval(timer);
     startSerialPilot();
   });
   addSkipButton(() => {
-    window.clearInterval(breakTimer);
+    window.clearInterval(timer);
     startSerialPilot();
-  });
-}
-
-function showConditionResult(result) {
-  const condition = session.conditions[conditionIndex];
-  const isLast = conditionIndex === session.conditions.length - 1;
-  app.innerHTML = `
-    <section class="panel narrow results">
-      <p class="kicker">Condition complete</p>
-      <h1>You remembered <strong>${result.recalled_count}</strong> of ${result.total_words}.</h1>
-      <div class="score-grid"><div><span>Beginning</span><strong>${result.position_groups.primacy.recalled}/5</strong></div><div><span>Middle</span><strong>${result.position_groups.middle.recalled}/5</strong></div><div><span>End</span><strong>${result.position_groups.recency.recalled}/5</strong></div></div>
-      <button type="button" id="next-button">${isLast ? 'Finish pilot' : 'Rest and continue'}</button>
-    </section>
-  `;
-  document.querySelector('#next-button').addEventListener('click', () => {
-    if (isLast) showComplete();
-    else {
-      conditionIndex += 1;
-      showRest(startCondition);
-    }
   });
 }
 
 function showRest(next) {
+  resumeAction = () => showRest(next);
   app.innerHTML = `<section class="panel centered"><p class="kicker">Take a short rest</p><h1>Ready for the next condition?</h1><p class="muted">Take at least 30 seconds if you need it.</p><button type="button" id="rest-button">Continue</button></section>`;
   document.querySelector('#rest-button').addEventListener('click', next);
   addSkipButton(next);
 }
 
 function showComplete() {
+  hideStopControl();
   app.innerHTML = `<section class="panel narrow"><p class="kicker">Pilot complete</p><h1>Thank you.</h1><p class="intro small">Your free-recall and serial-recall records have been saved. You can close this window.</p></section>`;
 }
 
@@ -466,6 +487,7 @@ function showLoading(message) {
 }
 
 function showError(message) {
+  hideStopControl();
   app.innerHTML = `<section class="panel narrow"><p class="kicker">Something went wrong</p><h1>We could not continue.</h1><p class="intro small">${message}</p><button type="button" id="retry-button">Try again</button></section>`;
   document.querySelector('#retry-button').addEventListener('click', showWelcome);
 }
