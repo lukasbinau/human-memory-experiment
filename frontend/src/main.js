@@ -119,7 +119,8 @@ function showSerialBlank(index, trial) {
     return;
   }
   document.querySelector('.word').textContent = '';
-  timer = window.setTimeout(() => showDigit(index + 1, trial), session.interval_ms);
+  const interval = trial.intervals ? trial.intervals[index] : session.interval_ms;
+  timer = window.setTimeout(() => showDigit(index + 1, trial), interval);
 }
 
 function showSerialRecallForm() {

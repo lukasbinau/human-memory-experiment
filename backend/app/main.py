@@ -129,6 +129,16 @@ def generate_digits(length: int) -> str:
     return "".join(str(random.randint(0, 9)) for _ in range(length))
 
 
+def generate_intervals(length: int, grouped: bool = False) -> list[int]:
+    """Blank durations (ms) after each digit except the last."""
+    if not grouped:
+        return [500] * (length - 1)
+    intervals = []
+    for position in range(1, length):
+        intervals.append(1250 if position % 3 == 0 else 250)
+    return intervals
+
+
 @app.post("/api/serial/start")
 def start_serial_pilot(request: StartSerialRequest | None = None):
     session_id = request.session_id if request and request.session_id else create_session(f"serial-{uuid4().hex[:8]}")
@@ -141,6 +151,7 @@ def start_serial_pilot(request: StartSerialRequest | None = None):
             "label": f"Capacity · {length} digits",
             "length": length,
             "sequence": generate_digits(length),
+            "intervals": generate_intervals(length),
         })
 
     chunk_sequence = generate_digits(9)
@@ -152,6 +163,7 @@ def start_serial_pilot(request: StartSerialRequest | None = None):
             "label": "Chunking · ungrouped",
             "length": 9,
             "sequence": chunk_sequence,
+            "intervals": generate_intervals(9, grouped=False),
         },
         {
             "trial_number": 12,
@@ -160,6 +172,7 @@ def start_serial_pilot(request: StartSerialRequest | None = None):
             "label": "Chunking · grouped",
             "length": 9,
             "sequence": chunk_sequence,
+            "intervals": generate_intervals(9, grouped=True),
         },
     ])
     for index, condition in enumerate(["control", "articulatory_suppression", "finger_tapping"]):
@@ -170,6 +183,7 @@ def start_serial_pilot(request: StartSerialRequest | None = None):
             "label": condition.replace("_", " ").title(),
             "length": 8,
             "sequence": generate_digits(8),
+            "intervals": generate_intervals(8),
         })
     return {"session_id": session_id, "trials": trials, "display_ms": 1000, "interval_ms": 500}
 
