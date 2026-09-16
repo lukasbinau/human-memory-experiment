@@ -1,10 +1,12 @@
 # Human Memory Experiments
 
+> **Version notice (15 September 2026):** This file specifies the historical `pilot-v1.0` protocol. The group's current design is the unimplemented [docs/final-v2.0-draft.md](docs/final-v2.0-draft.md); the app still implements the superseded [docs/final-v1.0-draft.md](docs/final-v1.0-draft.md). Protocol history is recorded in [docs/protocol-versions.md](docs/protocol-versions.md). Do not combine data across these versions.
+
 ## Experiment Design Specification
 
-**Course:** 02464 Artificial Intelligence and Human Cognition  
-**Project:** Human Memory Mini Project  
-**Design date:** 2 September 2026  
+**Course:** 02464 Artificial Intelligence and Human Cognition
+**Project:** Human Memory Mini Project
+**Design date:** 2 September 2026
 **Group:** s255728, s255213, s256191, s254943
 
 This document is the operational specification for pilot version 1.0. It records the procedure, stimuli, timings, response rules, and data requirements that the app must implement. Each planned variation is performed once per participant. Any change discovered during piloting must be recorded as a new protocol version.

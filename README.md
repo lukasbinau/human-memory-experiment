@@ -11,7 +11,7 @@ short_description: DTU human memory experiment pilot
 
 # Human Memory Experiment
 
-Pilot app for the DTU course 02464 Artificial Intelligence and Human Cognition.
+Human-memory experiment app for the DTU course 02464 Artificial Intelligence and Human Cognition.
 
 ## Project layout
 
@@ -19,7 +19,7 @@ Pilot app for the DTU course 02464 Artificial Intelligence and Human Cognition.
 - `backend/`: Python FastAPI experiment logic and API
 - `analysis/`: Python validation and pilot analysis
 - `supabase/`: database schema and migration files
-- `experiment-design.md`: current pilot protocol
+- `docs/final-v2.0-draft.md`: current experiment protocol
 - `hukommelseseksperiment_300_ord.csv`: approved Danish word list
 
 ## Local development
@@ -37,9 +37,20 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The current pilot app offers free recall and serial recall modes, sends trial generation and scoring requests to the Python API, and saves sessions and completed trials in Supabase.
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The default app runs the `final-v2.0-draft` 11-trial protocol, sends trial generation and scoring requests to the Python API, and saves sessions and completed trials in Supabase.
 
-The serial-recall pilot currently runs six capacity trials with sequence lengths 4, 5, 6, 7, 8, and 9 digits.
+The current draft runs four 15-word free-recall trials, four serial baselines of 6–9 letters, two adaptive secondary-task trials, and one nine-letter chunking trial. See [docs/final-v2.0-draft.md](docs/final-v2.0-draft.md) for the contract, [docs/final-v2.0-build-plan.md](docs/final-v2.0-build-plan.md) for implementation details, and [docs/protocol-versions.md](docs/protocol-versions.md) for version history.
+
+## Free-recall timing test
+
+Open `?mode=timing-test` on the deployed or local frontend to run the standalone timing comparison:
+
+```text
+https://lukasbinau-human-memory-experiment.hf.space/?mode=timing-test
+http://127.0.0.1:5173/?mode=timing-test
+```
+
+After entering a name, the tester chooses from ten predefined timing pairs. Each comparison presents two different 15-word lists in randomized, blinded timing order, saves both recall responses, and returns to the pair menu. The tester may try or repeat any pair and close the page when finished; there is no in-app evaluation form. These sessions use protocol `timing-test-v2` and remain separate from completed main-pilot sessions, so the main pilot analysis excludes them.
 
 ## Hugging Face deployment
 

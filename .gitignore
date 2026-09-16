@@ -9,3 +9,8 @@ __pycache__/
 
 # Local data exports
 exports/
+
+# Generated analysis products
+analysis/output/
+analysis/pilot_output_*/
+analysis/final_output/

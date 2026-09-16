@@ -1,5 +1,7 @@
 # Handoff Document — Human Memory Experiment App
 
+> **Historical document:** This handoff describes `pilot-v1.0` as it existed on 4 September 2026. The current implementation is `final-v1.0-draft`; see [docs/final-v1.0-draft.md](docs/final-v1.0-draft.md) and [docs/protocol-versions.md](docs/protocol-versions.md).
+
 **Date written:** 4 September 2026
 **Course:** 02464 Artificial Intelligence and Human Cognition (DTU)
 **Group:** s255728, s255213, s256191, s254943
