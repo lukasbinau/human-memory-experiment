@@ -1,6 +1,6 @@
 # Human Memory Experiments
 
-> **Version notice (15 September 2026):** This file specifies the historical `pilot-v1.0` protocol. The group's current design is the unimplemented [docs/final-v2.0-draft.md](docs/final-v2.0-draft.md); the app still implements the superseded [docs/final-v1.0-draft.md](docs/final-v1.0-draft.md). Protocol history is recorded in [docs/protocol-versions.md](docs/protocol-versions.md). Do not combine data across these versions.
+> **Version notice:** This file specifies the historical `pilot-v1.0` protocol. The app's current implemented design is `final-v2.1-draft`, documented in [docs/final-v2.0-draft.md](docs/final-v2.0-draft.md). Protocol history is recorded in [docs/protocol-versions.md](docs/protocol-versions.md). Do not combine data across these versions.
 
 ## Experiment Design Specification
 

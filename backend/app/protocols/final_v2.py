@@ -4,7 +4,7 @@ import random
 from backend.app.protocols.final_v1 import DRAFT_CHUNKS
 
 
-PROTOCOL_VERSION = "final-v2.0-draft"
+PROTOCOL_VERSION = "final-v2.1-draft"
 
 FREE_RECALL_NORMAL_MS = 2000
 FREE_RECALL_FAST_MS = 1000
@@ -72,14 +72,14 @@ def calculate_adaptive_length(positional_matches: dict[int, int]) -> dict:
 
     mean_accuracy = sum(accuracies.values()) / len(accuracies)
     scaled_length = mean_accuracy * 9
-    rounded_length = math.floor(scaled_length + 0.5)
+    rounded_length = math.floor(scaled_length)
     adaptive_length = max(6, min(9, rounded_length))
     return {
         "positional_matches": {str(length): positional_matches[length] for length in SERIAL_BASELINE_LENGTHS},
         "positional_accuracies": accuracies,
         "mean_accuracy": mean_accuracy,
         "scaled_length": scaled_length,
-        "rounding": "half_up",
+        "rounding": "floor",
         "adaptive_length": adaptive_length,
     }
 

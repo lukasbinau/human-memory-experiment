@@ -37,7 +37,7 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The default app runs the `final-v2.0-draft` 11-trial protocol, sends trial generation and scoring requests to the Python API, and saves sessions and completed trials in Supabase.
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The default app runs the `final-v2.1-draft` 11-trial protocol, sends trial generation and scoring requests to the Python API, and saves sessions, active attempts, and completed trials in Supabase.
 
 The current draft runs four 15-word free-recall trials, four serial baselines of 6–9 letters, two adaptive secondary-task trials, and one nine-letter chunking trial. See [docs/final-v2.0-draft.md](docs/final-v2.0-draft.md) for the contract, [docs/final-v2.0-build-plan.md](docs/final-v2.0-build-plan.md) for implementation details, and [docs/protocol-versions.md](docs/protocol-versions.md) for version history.
 

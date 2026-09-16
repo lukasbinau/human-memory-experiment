@@ -19,7 +19,7 @@ class FinalV2AnalysisTests(unittest.TestCase):
         session_id = "session-v2"
         self.sessions = pd.DataFrame([{
             "id": session_id,
-            "protocol_version": "final-v2.0-draft",
+            "protocol_version": "final-v2.1-draft",
             "status": "completed",
             "started_at": "2026-09-16T10:00:00Z",
         }])

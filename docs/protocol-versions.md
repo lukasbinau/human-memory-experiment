@@ -9,10 +9,19 @@ Experiment data must always be analysed within one protocol version. Trial numbe
 | `timing-test-v2` | Active utility | Reusable menu of ten free-recall timing pairs. Sessions remain incomplete for main-study filtering. |
 | `final-v1.0-draft` | Superseded draft | Nine-trial configuration with fixed 15-letter serial trials. Not frozen for data collection. |
 | `final-v1.0` | Never frozen | Reserved identifier that was not used for a frozen protocol. |
-| `final-v2.0-draft` | Design draft | Revised 11-trial configuration with four serial baselines, adaptive secondary tasks, and nine-letter chunking. Not yet implemented. |
+| `final-v2.0-draft` | Superseded draft | Implemented 11-trial configuration using half-up adaptive rounding and trial-boundary recovery. |
+| `final-v2.1-draft` | Active draft | Uses floor rounding, Danish participant copy, and phase-aware refresh recovery with attempt metadata. |
 | `final-v2.0` | Not yet frozen | Reserved for data collection after implementation and validation of the revised design. |
 
 ## Change Log
+
+### `final-v2.1-draft`
+
+- Changed adaptive-length rounding from half-up to floor before clamping to 6–9.
+- Added server-authoritative active attempts and phase-aware refresh recovery.
+- Regenerate stimuli after refresh during presentation; preserve stimuli and restart the answer period after refresh on the response screen.
+- Save `attempt_number` and `refresh_count` in trial metadata.
+- Changed all participant-facing text to Danish and removed technical letter-case wording.
 
 ### `final-v2.0-draft` — 15 September 2026
 
@@ -52,7 +61,7 @@ This checklist was not completed before the design was superseded:
 
 ## v2 Freeze Checklist
 
-Before changing the version to `final-v2.0`:
+Before freezing the active v2 draft:
 
 - Resolve and approve the open decisions in [final-v2.0-draft.md](final-v2.0-draft.md).
 - Implement the revised protocol without changing historical protocol behavior.

@@ -1,8 +1,9 @@
-# Final Protocol v2.0 Draft
+# Final Protocol v2.1 Draft
 
-**Protocol identifier:** `final-v2.0-draft`  
+**Protocol identifier:** `final-v2.1-draft`  
 **Designed:** 15 September 2026  
-**Status:** Design draft; not yet implemented
+**Revised:** 2026  
+**Status:** Implemented draft
 
 This document specifies the group's revised experiment. It replaces the
 nine-trial design in `final-v1.0-draft` for future implementation, but it does
@@ -117,14 +118,14 @@ length, because it is the comparator for chunking.
 For each baseline trial, calculate positional accuracy by dividing the number
 of letters recalled in the correct position by the number of letters shown.
 Calculate the arithmetic mean of the four accuracies, multiply it by 9, round
-to the nearest whole number with halves rounded upward, and clamp the result to
+down to the nearest whole number, and clamp the result to
 the inclusive range 6–9. This result is the participant's adaptive length for
 articulatory suppression and finger tapping.
 
 For correct-position counts $c_6$, $c_7$, $c_8$, and $c_9$:
 
 $$
-L = \operatorname{clamp}_{6,9}\left(\operatorname{roundHalfUp}
+L = \operatorname{clamp}_{6,9}\left(\operatorname{floor}
 \left(\frac{9}{4}\left(\frac{c_6}{6}+\frac{c_7}{7}+
 \frac{c_8}{8}+\frac{c_9}{9}\right)\right)\right)
 $$
@@ -217,7 +218,9 @@ isolate causal task effects without repeated trials.
 ## 6. Stimulus Rules
 
 Free-recall words are sampled without replacement from the approved Danish noun
-pool. Each participant receives 60 distinct words.
+pool. Planned trials contain 60 distinct words. If a presentation is restarted
+after a refresh, its replacement words must not overlap the planned words or
+any words already presented in the session.
 
 Non-chunked serial trials use uppercase letters sampled from the full Danish
 alphabet. A letter may not repeat within a sequence. The exact generated
@@ -233,7 +236,7 @@ sequences may differ in difficulty.
 
 In addition to the existing session and trial fields, save:
 
-- protocol version `final-v2.0-draft`;
+- protocol version `final-v2.1-draft`;
 - fixed trial number and condition;
 - presented sequence and presentation units;
 - intended and observed presentation timing;
@@ -245,6 +248,22 @@ In addition to the existing session and trial fields, save:
 - chunk identities and flattened chunk sequence;
 - card-game and tapping interaction data;
 - whether a response ended manually or by timeout.
+- attempt number, refresh count, and the last saved phase for every trial.
+
+### 7.1 Refresh and attempt handling
+
+The server stores one authoritative row per trial, including while the trial is
+in progress. Refreshing at the instruction screen returns to the same trial
+with the same stimuli. Refreshing during stimulus presentation starts a new
+attempt of the same trial with newly generated stimuli. Refreshing at the
+response screen keeps the presented stimuli but clears the unsent answer and
+restarts the full response timer.
+
+`attempt_number` begins at one and increases only when an interrupted
+presentation is replaced. `refresh_count` increases for every recovery request,
+regardless of phase. Completing the trial updates the active row rather than
+creating a duplicate. The score endpoint validates the submitted stimulus
+against the active row, so a replaced presentation cannot later be submitted.
 
 The session is marked complete only after all 11 trials have been saved.
 Incomplete sessions and all timeout, blank-response, and compliance data remain
@@ -264,7 +283,7 @@ percentage, or correct answers are shown.
 The group confirmed the following on 15 September 2026:
 
 1. Adaptive length is the mean positional accuracy across the four baseline
-    trials, scaled to nine letters, rounded half upward, and clamped to 6–9.
+    trials, scaled to nine letters, rounded down, and clamped to 6–9.
 2. Adaptive secondary-task trials use new non-repeating letter sequences.
 3. All Danish letters are eligible for non-chunked serial sequences.
 4. Serial letters and chunk words display for 2000 ms with 500 ms blanks.

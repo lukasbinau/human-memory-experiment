@@ -1,6 +1,8 @@
 from pathlib import Path
 import random
+from copy import deepcopy
 from datetime import datetime, timezone
+from typing import Literal
 from uuid import uuid4
 
 from dotenv import load_dotenv
@@ -29,7 +31,9 @@ from backend.app.protocols.final_v2 import (
     build_baseline_trials as build_v2_baseline_trials,
     build_free_recall_conditions as build_v2_free_recall_conditions,
     calculate_adaptive_length,
+    generate_letter_sequence,
 )
+from backend.app.protocols.final_v1 import DRAFT_CHUNKS
 from backend.app.scoring.free_recall import score_response
 from backend.app.scoring.serial_recall import normalize_sequence
 from backend.app.scoring.serial_recall import score_response as score_serial_response
@@ -112,6 +116,11 @@ class StartSerialRequest(BaseModel):
 
 class V2SessionRequest(BaseModel):
     session_id: str
+
+
+class V2TrialPhaseRequest(V2SessionRequest):
+    trial_number: int
+    phase: Literal["intro", "presentation", "response"]
 
 
 def load_words() -> list[str]:
@@ -209,23 +218,195 @@ def build_v2_initial_payload(session_id: str, random_seed: int) -> dict:
     }
 
 
+def find_v2_trial(session_id: str, trial_number: int) -> dict | None:
+    return next(
+        (row for row in get_trials(session_id) if row.get("trial_number") == trial_number),
+        None,
+    )
+
+
+def build_v2_trial(session_id: str, session: dict, trial_number: int) -> dict:
+    if trial_number in range(1, 5):
+        return deepcopy(build_v2_initial_payload(
+            session_id,
+            int(session["random_seed"]),
+        )["free_recall_conditions"][trial_number - 1])
+    if trial_number in range(5, 9):
+        return deepcopy(build_v2_initial_payload(
+            session_id,
+            int(session["random_seed"]),
+        )["serial_baseline_trials"][trial_number - 5])
+    if trial_number in range(9, 12):
+        return deepcopy(next(
+            trial
+            for trial in build_v2_adaptive_payload(session_id, session)["trials"]
+            if trial["trial_number"] == trial_number
+        ))
+    raise HTTPException(status_code=400, detail="V2 trial number must be 1–11.")
+
+
+def regenerate_v2_stimulus(
+    trial: dict,
+    previous_sequence: list[str] | str,
+    seed: int,
+    excluded_words: set[str] | None = None,
+) -> dict:
+    regenerated = deepcopy(trial)
+    rng = random.Random(seed)
+    if trial["trial_number"] <= 4:
+        unavailable_words = set(previous_sequence) | (excluded_words or set())
+        available_words = [word for word in load_words() if word not in unavailable_words]
+        regenerated["words"] = rng.sample(available_words, 15)
+    elif trial["trial_number"] == 11:
+        previous_chunks = set(
+            previous_sequence[index:index + 3]
+            for index in range(0, len(previous_sequence), 3)
+        )
+        available_chunks = [chunk for chunk, _ in DRAFT_CHUNKS if chunk not in previous_chunks]
+        chunks = rng.sample(available_chunks, 3)
+        regenerated.update({
+            "sequence": "".join(chunks),
+            "presentation_units": chunks,
+            "chunks": chunks,
+        })
+    else:
+        sequence = generate_letter_sequence(rng, trial["length"])
+        while sequence == previous_sequence:
+            sequence = generate_letter_sequence(rng, trial["length"])
+        regenerated.update({"sequence": sequence, "presentation_units": list(sequence)})
+    return regenerated
+
+
+def active_row_to_trial(row: dict) -> dict:
+    task_data = row.get("task_data") or {}
+    trial = deepcopy(task_data["trial"])
+    trial["attempt_number"] = task_data["attempt_number"]
+    trial["phase"] = task_data["phase"]
+    trial["refresh_count"] = task_data.get("refresh_count", 0)
+    return trial
+
+
+def save_v2_active_trial(session_id: str, trial: dict, *, attempt_number: int, phase: str, refresh_count: int) -> dict:
+    is_free = trial["trial_number"] <= 4
+    row = save_trial({
+        "session_id": session_id,
+        "experiment_type": "free_recall" if is_free else "serial_recall",
+        "experiment_part": "free_recall" if is_free else trial["part"],
+        "condition": trial["name"] if is_free else trial["condition"],
+        "trial_number": trial["trial_number"],
+        "presented_sequence": trial["words"] if is_free else trial["sequence"],
+        "task_data": {
+            "trial": trial,
+            "attempt_number": attempt_number,
+            "phase": phase,
+            "refresh_count": refresh_count,
+        },
+        "completed": False,
+    })
+    return active_row_to_trial(row)
+
+
+@app.post("/api/v2/trial/phase")
+def set_v2_trial_phase(request: V2TrialPhaseRequest):
+    session = require_v2_session(request.session_id)
+    row = find_v2_trial(request.session_id, request.trial_number)
+    if row and row.get("completed"):
+        raise HTTPException(status_code=409, detail="This trial is already complete.")
+    if row:
+        task_data = row.get("task_data") or {}
+        trial = task_data.get("trial")
+        if not trial:
+            raise HTTPException(status_code=409, detail="Active trial state is invalid.")
+        return save_v2_active_trial(
+            request.session_id,
+            trial,
+            attempt_number=int(task_data.get("attempt_number", 1)),
+            phase=request.phase,
+            refresh_count=int(task_data.get("refresh_count", 0)),
+        )
+    if request.phase != "intro":
+        raise HTTPException(status_code=409, detail="Prepare the trial before starting it.")
+    trial = build_v2_trial(request.session_id, session, request.trial_number)
+    return save_v2_active_trial(
+        request.session_id,
+        trial,
+        attempt_number=1,
+        phase="intro",
+        refresh_count=0,
+    )
+
+
+@app.post("/api/v2/{session_id}/recover")
+def recover_v2_trial(session_id: str):
+    session = require_v2_session(session_id)
+    active_rows = [row for row in get_trials(session_id) if not row.get("completed")]
+    if not active_rows:
+        return {"active_trial": None}
+    row = max(active_rows, key=lambda item: item["trial_number"])
+    task_data = row.get("task_data") or {}
+    trial = task_data.get("trial")
+    if not trial:
+        raise HTTPException(status_code=409, detail="Active trial state is invalid.")
+    attempt_number = int(task_data.get("attempt_number", 1))
+    refresh_count = int(task_data.get("refresh_count", 0)) + 1
+    recovered_phase = task_data.get("phase", "intro")
+    if recovered_phase == "presentation":
+        attempt_number += 1
+        canonical = build_v2_trial(session_id, session, row["trial_number"])
+        initial_words = {
+            word
+            for condition in build_v2_initial_payload(session_id, int(session["random_seed"]))["free_recall_conditions"]
+            for word in condition["words"]
+        }
+        previously_presented_words = {
+            word
+            for trial_row in get_trials(session_id)
+            if trial_row.get("experiment_type") == "free_recall"
+            for word in trial_row["presented_sequence"]
+        }
+        trial = regenerate_v2_stimulus(
+            canonical,
+            row["presented_sequence"],
+            int(session["random_seed"]) + row["trial_number"] * 10_000 + attempt_number,
+            excluded_words=initial_words | previously_presented_words,
+        )
+        recovered_phase = "intro"
+    active_trial = save_v2_active_trial(
+        session_id,
+        trial,
+        attempt_number=attempt_number,
+        phase=recovered_phase,
+        refresh_count=refresh_count,
+    )
+    return {"active_trial": active_trial}
+
+
 @app.post("/api/v2/free-score")
 def score_v2_free_recall(request: FinalFreeScoreRequest):
     if request.trial_number not in range(1, 5):
         raise HTTPException(status_code=400, detail="V2 free-recall trial number must be 1–4.")
     session = require_v2_session(request.session_id)
-    expected = build_v2_initial_payload(request.session_id, int(session["random_seed"]))["free_recall_conditions"]
-    expected_trial = expected[request.trial_number - 1]
-    if request.condition != expected_trial["name"] or request.presented_words != expected_trial["words"]:
-        raise HTTPException(status_code=400, detail="Free-recall trial does not match the session protocol.")
     existing = find_completed_trial(request.session_id, request.trial_number)
     if existing:
         return existing["score"]
+    active = find_v2_trial(request.session_id, request.trial_number)
+    expected_trial = (
+        (active.get("task_data") or {}).get("trial")
+        if active and not active.get("completed")
+        else build_v2_initial_payload(request.session_id, int(session["random_seed"]))["free_recall_conditions"][request.trial_number - 1]
+    )
+    if request.condition != expected_trial["name"] or request.presented_words != expected_trial["words"]:
+        raise HTTPException(status_code=400, detail="Free-recall trial does not match the session protocol.")
     return save_free_recall_result(request)
 
 
 def save_free_recall_result(request: ScoreRequest) -> dict:
     result = score_response(request.presented_words, request.response)
+    active = find_v2_trial(request.session_id, request.trial_number)
+    authoritative_task_data = dict(request.task_data)
+    active_task_data = dict((active or {}).get("task_data") or {})
+    active_task_data.pop("trial", None)
+    authoritative_task_data.update(active_task_data)
     save_trial({
         "session_id": request.session_id,
         "experiment_type": "free_recall",
@@ -237,7 +418,7 @@ def save_free_recall_result(request: ScoreRequest) -> dict:
         "normalized_response": request.response.strip().lower(),
         "score": result,
         "timing": request.timing,
-        "task_data": request.task_data,
+        "task_data": authoritative_task_data,
         "completed": True,
     })
     return result
@@ -248,7 +429,15 @@ def score_v2_serial_trial(request: SerialScoreRequest):
     if request.trial_number not in range(5, 12):
         raise HTTPException(status_code=400, detail="V2 serial trial number must be 5–11.")
     session = require_v2_session(request.session_id)
-    if request.trial_number <= 8:
+    existing = find_completed_trial(request.session_id, request.trial_number)
+    if existing:
+        if request.trial_number == 11:
+            complete_session(request.session_id)
+        return existing["score"]
+    active = find_v2_trial(request.session_id, request.trial_number)
+    if active and not active.get("completed"):
+        expected_trials = [(active.get("task_data") or {}).get("trial")]
+    elif request.trial_number <= 8:
         expected_trials = build_v2_initial_payload(
             request.session_id,
             int(session["random_seed"]),
@@ -266,12 +455,10 @@ def score_v2_serial_trial(request: SerialScoreRequest):
         or request.presented_sequence != expected_trial["sequence"]
     ):
         raise HTTPException(status_code=400, detail="Serial trial does not match the session protocol.")
-    existing = find_completed_trial(request.session_id, request.trial_number)
-    if existing:
-        if request.trial_number == 11:
-            complete_session(request.session_id)
-        return existing["score"]
     authoritative_task_data = dict(request.task_data)
+    active_task_data = dict((active or {}).get("task_data") or {})
+    active_task_data.pop("trial", None)
+    authoritative_task_data.update(active_task_data)
     if request.trial_number in (9, 10):
         authoritative_task_data.update({
             "adaptive_derivation": expected_trial["adaptive_derivation"],

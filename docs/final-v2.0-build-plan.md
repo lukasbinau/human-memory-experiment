@@ -1,6 +1,6 @@
 # Final Protocol v2.0 Build Plan
 
-**Target protocol:** `final-v2.0-draft`  
+**Target protocol:** `final-v2.1-draft`
 **Prepared:** 16 September 2026  
 **Status:** Ready for implementation
 
@@ -107,7 +107,7 @@ Add a separate local pre-analysis script that:
 
 ## 6. Analysis
 
-Create a v2 analysis path that filters only `final-v2.0-draft` or its frozen
+Create a v2 analysis path that filters only `final-v2.1-draft` or its frozen
 successor and rejects mixed-version data. It must validate:
 
 - exactly 11 unique completed trials with the required condition order;
@@ -135,7 +135,7 @@ Add focused tests in this order:
 6. desktop and mobile browser checks for timing, tapping, break skipping,
    card-game completion, and final totals.
 
-Adaptive tests must cover zero performance, clamp boundaries, half-up rounding,
+Adaptive tests must cover zero performance, clamp boundaries, floor rounding,
 mixed performance, and perfect performance producing length 9.
 
 ## 8. Build Order

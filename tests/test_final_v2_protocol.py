@@ -46,8 +46,8 @@ class FinalV2ProtocolTests(unittest.TestCase):
             9,
         )
         result = calculate_adaptive_length({6: 6, 7: 6, 8: 5, 9: 5})
-        self.assertEqual(result["adaptive_length"], 7)
-        self.assertEqual(result["rounding"], "half_up")
+        self.assertEqual(result["adaptive_length"], 6)
+        self.assertEqual(result["rounding"], "floor")
 
     def test_adaptive_formula_validates_inputs(self):
         with self.assertRaises(ValueError):

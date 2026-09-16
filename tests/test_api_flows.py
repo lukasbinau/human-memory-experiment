@@ -163,7 +163,7 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         protocol = response.json()
         session_id = protocol["session_id"]
-        self.assertEqual(protocol["protocol_version"], "final-v2.0-draft")
+        self.assertEqual(protocol["protocol_version"], "final-v2.1-draft")
         self.assertEqual(
             [condition["trial_number"] for condition in protocol["free_recall_conditions"]],
             [1, 2, 3, 4],
@@ -272,6 +272,99 @@ class ApiFlowTests(unittest.TestCase):
         state = self.client.get(f"/api/v2/{session_id}/state")
         self.assertEqual(state.status_code, 200)
         self.assertEqual(state.json()["completed_trial_numbers"], list(range(1, 12)))
+
+    def test_v2_refresh_restarts_presentation_but_preserves_response_stimulus(self):
+        protocol = self.client.post(
+            "/api/v2/start",
+            json={"participant_code": "Recovery Tester"},
+        ).json()
+        session_id = protocol["session_id"]
+
+        prepared = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 1,
+            "phase": "intro",
+        })
+        self.assertEqual(prepared.status_code, 200)
+        original_words = prepared.json()["words"]
+        self.assertEqual(prepared.json()["attempt_number"], 1)
+
+        intro_refresh = self.client.post(f"/api/v2/{session_id}/recover").json()["active_trial"]
+        self.assertEqual(intro_refresh["words"], original_words)
+        self.assertEqual(intro_refresh["attempt_number"], 1)
+        self.assertEqual(intro_refresh["refresh_count"], 1)
+
+        presentation = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 1,
+            "phase": "presentation",
+        })
+        self.assertEqual(presentation.status_code, 200)
+        presentation_refresh = self.client.post(
+            f"/api/v2/{session_id}/recover"
+        ).json()["active_trial"]
+        self.assertNotEqual(presentation_refresh["words"], original_words)
+        self.assertEqual(presentation_refresh["attempt_number"], 2)
+        self.assertEqual(presentation_refresh["phase"], "intro")
+
+        response_phase = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 1,
+            "phase": "response",
+        })
+        self.assertEqual(response_phase.status_code, 200)
+        response_refresh = self.client.post(f"/api/v2/{session_id}/recover").json()["active_trial"]
+        self.assertEqual(response_refresh["words"], presentation_refresh["words"])
+        self.assertEqual(response_refresh["attempt_number"], 2)
+        self.assertEqual(response_refresh["phase"], "response")
+        self.assertEqual(response_refresh["refresh_count"], 3)
+
+        score = self.client.post("/api/v2/free-score", json={
+            "session_id": session_id,
+            "presented_words": response_refresh["words"],
+            "response": "",
+            "condition": response_refresh["name"],
+            "trial_number": 1,
+        })
+        self.assertEqual(score.status_code, 200)
+        rows = self.store.get_trials(session_id)
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0]["completed"])
+        self.assertEqual(rows[0]["task_data"]["attempt_number"], 2)
+        self.assertEqual(rows[0]["task_data"]["refresh_count"], 3)
+
+    def test_v2_serial_refresh_regenerates_same_length_then_preserves_response(self):
+        protocol = self.client.post(
+            "/api/v2/start",
+            json={"participant_code": "Serial Recovery Tester"},
+        ).json()
+        session_id = protocol["session_id"]
+        original = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 5,
+            "phase": "intro",
+        }).json()
+        self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 5,
+            "phase": "presentation",
+        })
+
+        regenerated = self.client.post(f"/api/v2/{session_id}/recover").json()["active_trial"]
+        self.assertNotEqual(regenerated["sequence"], original["sequence"])
+        self.assertEqual(regenerated["length"], original["length"])
+        self.assertEqual(regenerated["presentation_units"], list(regenerated["sequence"]))
+        self.assertEqual(regenerated["attempt_number"], 2)
+
+        self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 5,
+            "phase": "response",
+        })
+        response_refresh = self.client.post(f"/api/v2/{session_id}/recover").json()["active_trial"]
+        self.assertEqual(response_refresh["sequence"], regenerated["sequence"])
+        self.assertEqual(response_refresh["attempt_number"], 2)
+        self.assertEqual(response_refresh["phase"], "response")
 
     def test_unknown_timing_pair_returns_client_error(self):
         response = self.client.post("/api/timing-test/pair", json={"session_id": "missing", "pair_id": "not-a-pair"})
