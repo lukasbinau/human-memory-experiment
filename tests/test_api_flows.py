@@ -180,6 +180,13 @@ class ApiFlowTests(unittest.TestCase):
                 "response": ", ".join(condition["words"]),
                 "condition": condition["name"],
                 "trial_number": condition["trial_number"],
+                "timing": {
+                    "display_ms": condition["display_ms"],
+                    "post_task": condition["post_task"],
+                    "post_task_seconds": 15 if condition["post_task"] != "none" else 0,
+                    "response_limit_seconds": 90,
+                },
+                "task_data": {"response_ms": 1234},
             })
             self.assertEqual(score.status_code, 200)
 
@@ -217,6 +224,9 @@ class ApiFlowTests(unittest.TestCase):
 
         self.assertEqual(self.store.sessions[session_id]["status"], "completed")
         self.assertEqual(len(self.store.get_trials(session_id)), 11)
+        first_trial = self.store.get_trials(session_id)[0]
+        self.assertEqual(first_trial["timing"]["response_limit_seconds"], 90)
+        self.assertEqual(first_trial["task_data"]["response_ms"], 1234)
         results = self.client.get(f"/api/v2/{session_id}/results")
         self.assertEqual(results.status_code, 200)
         result_data = results.json()

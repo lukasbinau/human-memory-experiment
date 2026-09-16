@@ -311,7 +311,7 @@ function showSuppressionConfirmation(submission) {
 
 async function sendSerialResponse({ trial, responseText, responseMs }, suppressionConfirmed) {
   showLoading('Saving your response');
-  const response = await fetch(`${apiUrl}/api/v2/serial-score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number, condition: trial.condition, experiment_part: trial.part, timing: { presentation_units: trial.presentation_units, unit_display_ms: trial.unit_display_ms, intervals: trial.intervals, total_exposure_ms: trial.total_exposure_ms }, task_data: { tap_count: tapTimes.length, tap_times_ms: tapTimes.map((value) => Math.round(value - serialPresentationStartedAt)), suppression_confirmed: suppressionConfirmed, chunks: trial.chunks || [], response_ms: responseMs, adaptive_derivation: trial.adaptive_derivation, matched_baseline_trial_number: trial.matched_baseline_trial_number } }) });
+  const response = await fetch(`${apiUrl}/api/v2/serial-score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number, condition: trial.condition, experiment_part: trial.part, timing: { presentation_units: trial.presentation_units, unit_display_ms: trial.unit_display_ms, intervals: trial.intervals, total_exposure_ms: trial.total_exposure_ms }, task_data: { tap_count: tapTimes.length, tap_times_ms: tapTimes.map((value) => Math.max(0, Math.round(value - serialPresentationStartedAt))), suppression_confirmed: suppressionConfirmed, chunks: trial.chunks || [], response_ms: responseMs, adaptive_derivation: trial.adaptive_derivation, matched_baseline_trial_number: trial.matched_baseline_trial_number } }) });
   if (!response.ok) { showError('The sequence could not be saved. Check your connection and try again.'); return; }
   showSerialResult();
 }
@@ -578,11 +578,12 @@ async function finishRecall() {
   document.querySelector('.skip-button')?.remove();
   const condition = session.conditions[conditionIndex];
   const rawResponse = recalledWords.map((entry) => entry.word).join(', ');
+  const responseMs = Math.round(performance.now() - recallStartedAt);
   try {
     const scorePath = timingTestMode ? '/api/timing-test/score' : '/api/v2/free-score';
     const response = await fetch(`${apiUrl}${scorePath}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: session.session_id, presented_words: condition.words, response: rawResponse, condition: condition.name, trial_number: condition.trial_number, timing: { display_ms: condition.display_ms, post_task: condition.post_task }, task_data: { submissions: recalledWords, pair_id: session.activePairId } }),
+      body: JSON.stringify({ session_id: session.session_id, presented_words: condition.words, response: rawResponse, condition: condition.name, trial_number: condition.trial_number, timing: { display_ms: condition.display_ms, post_task: condition.post_task, post_task_seconds: condition.post_task === 'pause' ? session.settings?.free_recall_pause_seconds : condition.post_task === 'card_game' ? session.settings?.card_game_seconds : 0, response_limit_seconds: session.settings?.free_recall_response_seconds }, task_data: { submissions: recalledWords, response_ms: responseMs, pair_id: session.activePairId } }),
     });
     if (!response.ok) throw new Error();
     if (timingTestMode) showTimingConditionComplete();
