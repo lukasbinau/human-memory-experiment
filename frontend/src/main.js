@@ -21,11 +21,11 @@ let recallFinishing = false;
 let serialRecallFinishing = false;
 let resumeAction = () => timingTestMode ? showTimingTestWelcome() : showWelcome();
 
-async function setTrialPhase(trialNumber, phase) {
+async function setTrialPhase(trialNumber, phase, taskData = {}) {
   const response = await fetch(`${apiUrl}/api/v2/trial/phase`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: session.session_id, trial_number: trialNumber, phase }),
+    body: JSON.stringify({ session_id: session.session_id, trial_number: trialNumber, phase, task_data: taskData }),
   });
   if (!response.ok) throw new Error(`Trial phase could not be set to ${phase}.`);
   return response.json();
@@ -65,14 +65,15 @@ function showStopConfirm() {
   window.clearTimeout(timer);
   window.clearInterval(timer);
   window.clearInterval(cardGameTimer);
-  document.removeEventListener('keydown', recordTap);
+  removeTapControls();
   document.querySelector('.skip-button')?.remove();
   hideStopControl();
   app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Stop eksperimentet</p><h1>Vil du stoppe nu?</h1><p class="intro small">Hvis du stopper, bliver dine færdige svar gemt, men der indsamles ikke flere svar. Hvis du fortsætter, vender du tilbage til begyndelsen af det aktuelle trin.</p><div class="stop-actions"><button type="button" id="stop-confirm-no">Nej, fortsæt</button><button type="button" id="stop-confirm-yes" class="secondary-button">Ja, stop</button></div></section>`;
   document.querySelector('#stop-confirm-yes').addEventListener('click', endSessionStopped);
   document.querySelector('#stop-confirm-no').addEventListener('click', () => {
     showStopControl();
-    resumeAction();
+    if (timingTestMode) resumeAction();
+    else restoreActiveSession();
   });
 }
 
@@ -87,9 +88,9 @@ function showWelcome() {
   app.innerHTML = `
     <section class="panel welcome loading-screen">
       <div class="loading-mark" aria-hidden="true"></div>
-      <p class="eyebrow">02464 Artificial Intelligence and Human Cognition</p>
+      <p class="eyebrow">02464 Kunstig intelligens og menneskelig kognition</p>
       <p class="kicker">Undersøgelse af menneskets hukommelse</p>
-      <h1>Hukommelseseksperiment</h1>
+      <h1 class="welcome-title">Hukommelses<wbr>eksperiment</h1>
       <p class="intro">Du skal gennemføre 11 forsøg med danske ord og bogstaver.</p>
       <ul class="consent-summary">
         <li>Det tager cirka 15 minutter. Gennemfør det et roligt sted uden afbrydelser.</li>
@@ -124,7 +125,7 @@ function showTimingTestWelcome() {
   app.innerHTML = `
     <section class="panel welcome loading-screen">
       <div class="loading-mark" aria-hidden="true"></div>
-      <p class="eyebrow">02464 Artificial Intelligence and Human Cognition</p>
+      <p class="eyebrow">02464 Kunstig intelligens og menneskelig kognition</p>
       <p class="kicker">Tidstest med ord</p>
       <h1>Sammenlign visningstider.</h1>
       <p class="intro">Vælg et par af tider, og prøv to ordlister ad gangen. Du kan vende tilbage til menuen og sammenligne så mange par, du vil.</p>
@@ -189,7 +190,7 @@ function showTimingPairMenu() {
       <h1>Vælg et tidspar.</h1>
       <p class="intro small">Hver sammenligning består af to lister med 15 ord i tilfældig rækkefølge.</p>
       <div class="timing-pair-grid">
-        ${session.pairs.map((pair) => `<button type="button" class="timing-pair-button" data-pair-id="${pair.id}"><span>${formatSeconds(pair.first_ms)}</span><strong>vs.</strong><span>${formatSeconds(pair.second_ms)}</span></button>`).join('')}
+        ${session.pairs.map((pair) => `<button type="button" class="timing-pair-button" data-pair-id="${pair.id}"><span>${formatSeconds(pair.first_ms)}</span><strong>mod</strong><span>${formatSeconds(pair.second_ms)}</span></button>`).join('')}
       </div>
       <p class="muted">Du kan prøve hvert par igen. Luk siden, når du er færdig.</p>
     </section>
@@ -266,6 +267,19 @@ function recordTouchTap(event) {
   tapTimes.push(performance.now());
 }
 
+function removeTapControls() {
+  document.removeEventListener('keydown', recordTap);
+  document.querySelector('.tap-target')?.remove();
+}
+
+function getTappingData(trial) {
+  if (trial.condition !== 'finger_tapping') return {};
+  const tapTimesMs = tapTimes.length && Number.isFinite(serialPresentationStartedAt)
+    ? tapTimes.map((value) => Math.max(0, Math.round(value - serialPresentationStartedAt)))
+    : (trial.tap_times_ms || []);
+  return { tap_count: tapTimesMs.length, tap_times_ms: tapTimesMs };
+}
+
 function showSerialUnit(index, trial) {
   const units = trial.presentation_units || [...trial.sequence];
   if (index === units.length) {
@@ -274,6 +288,14 @@ function showSerialUnit(index, trial) {
   }
   if (!document.querySelector('.trial-screen')) {
     app.innerHTML = '<section class="trial-screen"><p class="progress"></p><div class="word"></div></section>';
+    if (trial.condition === 'finger_tapping') {
+      const tapTarget = document.createElement('button');
+      tapTarget.type = 'button';
+      tapTarget.className = 'tap-target';
+      tapTarget.textContent = 'Tryk her i en jævn rytme';
+      tapTarget.addEventListener('pointerdown', recordTouchTap);
+      document.body.appendChild(tapTarget);
+    }
   }
   document.querySelector('.progress').textContent = `Bogstaver i rækkefølge · Forsøg ${trial.trial_number} af ${totalMainTrials}`;
   document.querySelector('.word').textContent = units[index];
@@ -297,12 +319,16 @@ async function showSerialRecallForm() {
   document.querySelector('.skip-button')?.remove();
   let trial = session.trials[conditionIndex];
   try {
-    trial = await setTrialPhase(trial.trial_number, 'response');
+    const tappingData = getTappingData(trial);
+    trial = await setTrialPhase(trial.trial_number, 'response', tappingData);
     replaceCurrentTrial(trial);
   } catch {
     showError('Svarfeltet kunne ikke åbnes. Kontrollér forbindelsen, og prøv igen.');
     return;
   }
+  removeTapControls();
+  tapTimes = [];
+  resumeAction = restoreActiveSession;
   const responseSeconds = session.settings?.serial_response_seconds || 30;
   serialRecallStartedAt = performance.now();
   serialRecallFinishing = false;
@@ -329,7 +355,7 @@ async function submitSerialRecall(event) {
   const trial = session.trials[conditionIndex];
   const responseText = document.querySelector('#serial-response').value;
   const responseMs = Math.round(performance.now() - serialRecallStartedAt);
-  document.removeEventListener('keydown', recordTap);
+  removeTapControls();
   document.querySelector('.skip-button')?.remove();
   const submission = { trial, responseText, responseMs };
   if (trial.condition === 'articulatory_suppression') {
@@ -341,13 +367,13 @@ async function submitSerialRecall(event) {
 
 function showSuppressionConfirmation(submission) {
   resumeAction = () => showSuppressionConfirmation(submission);
-  app.innerHTML = `<section class="panel narrow"><p class="kicker">Bogstaver i rækkefølge · Forsøg 9 af ${totalMainTrials}</p><h1>Et hurtigt spørgsmål.</h1><p class="intro small">Sagde du “la-la-la” under hele visningen af bogstaverne?</p><div class="stop-actions"><button type="button" data-compliance="true">Ja</button><button type="button" data-compliance="false" class="secondary-button">Nej</button></div></section>`;
+  app.innerHTML = `<section class="panel narrow"><p class="kicker">Bogstaver i rækkefølge · Forsøg ${submission.trial.trial_number} af ${totalMainTrials}</p><h1>Et hurtigt spørgsmål.</h1><p class="intro small">Sagde du “la-la-la” under hele visningen af bogstaverne?</p><div class="stop-actions"><button type="button" data-compliance="true">Ja, det gjorde jeg</button><button type="button" data-compliance="false" class="secondary-button">Nej, det gjorde jeg ikke</button></div></section>`;
   document.querySelectorAll('[data-compliance]').forEach((button) => button.addEventListener('click', () => sendSerialResponse(submission, button.dataset.compliance === 'true')));
 }
 
 async function sendSerialResponse({ trial, responseText, responseMs }, suppressionConfirmed) {
   showLoading('Gemmer dit svar');
-  const response = await fetch(`${apiUrl}/api/v2/serial-score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number, condition: trial.condition, experiment_part: trial.part, timing: { presentation_units: trial.presentation_units, unit_display_ms: trial.unit_display_ms, intervals: trial.intervals, total_exposure_ms: trial.total_exposure_ms }, task_data: { tap_count: tapTimes.length, tap_times_ms: tapTimes.map((value) => Math.max(0, Math.round(value - serialPresentationStartedAt))), suppression_confirmed: suppressionConfirmed, chunks: trial.chunks || [], response_ms: responseMs, adaptive_derivation: trial.adaptive_derivation, matched_baseline_trial_number: trial.matched_baseline_trial_number } }) });
+  const response = await fetch(`${apiUrl}/api/v2/serial-score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: session.session_id, presented_sequence: trial.sequence, response: responseText, trial_number: trial.trial_number, condition: trial.condition, experiment_part: trial.part, timing: { presentation_units: trial.presentation_units, unit_display_ms: trial.unit_display_ms, intervals: trial.intervals, total_exposure_ms: trial.total_exposure_ms }, task_data: { ...getTappingData(trial), suppression_confirmed: suppressionConfirmed, chunks: trial.chunks || [], response_ms: responseMs, adaptive_derivation: trial.adaptive_derivation, matched_baseline_trial_number: trial.matched_baseline_trial_number } }) });
   if (!response.ok) { showError('Dit svar kunne ikke gemmes. Kontrollér forbindelsen, og prøv igen.'); return; }
   showSerialResult();
 }
@@ -586,6 +612,7 @@ async function showRecallForm() {
   recalledWords = [];
   recallStartedAt = performance.now();
   recallFinishing = false;
+  resumeAction = restoreActiveSession;
   app.innerHTML = `
     <section class="panel narrow">
       <div class="recall-header"><p class="kicker">${timingTestMode ? `Liste ${conditionIndex + 1} / ${session.conditions.length}` : `Ord, du kan huske · Forsøg ${condition.trial_number} af ${totalMainTrials}`}</p><div class="countdown"><span>Tid tilbage</span><strong id="countdown">${Math.floor(responseSeconds / 60)}:${String(responseSeconds % 60).padStart(2, '0')}</strong></div></div>

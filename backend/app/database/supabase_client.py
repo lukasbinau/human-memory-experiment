@@ -34,6 +34,32 @@ def save_trial(trial: dict) -> dict:
     return result.data[0]
 
 
+def complete_trial(trial: dict) -> dict:
+    client = get_supabase_client()
+    result = (
+        client.table("trials")
+        .update(trial)
+        .eq("session_id", trial["session_id"])
+        .eq("trial_number", trial["trial_number"])
+        .eq("completed", False)
+        .execute()
+    )
+    if result.data:
+        return result.data[0]
+    existing = (
+        client.table("trials")
+        .select("*")
+        .eq("session_id", trial["session_id"])
+        .eq("trial_number", trial["trial_number"])
+        .eq("completed", True)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        return existing.data[0]
+    raise RuntimeError("The active trial could not be completed.")
+
+
 def get_session(session_id: str) -> dict | None:
     client = get_supabase_client()
     result = client.table("sessions").select("*").eq("id", session_id).limit(1).execute()

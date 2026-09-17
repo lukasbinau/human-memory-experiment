@@ -39,13 +39,24 @@ class FinalV2AnalysisTests(unittest.TestCase):
                 "presented_sequence": condition["words"],
                 "raw_response": raw_response,
                 "score": score_free_recall(condition["words"], raw_response),
-                "task_data": {},
+                "task_data": {
+                    "response_ms": 10_000,
+                    "attempt_number": 1,
+                    "refresh_count": 0,
+                },
             })
         for trial in baseline_trials + adaptive_trials:
             task_data = {
                 "chunks": trial.get("chunks", []),
                 "matched_baseline_trial_number": trial.get("matched_baseline_trial_number", 8),
+                "response_ms": 5_000,
+                "attempt_number": 1,
+                "refresh_count": 0,
             }
+            if trial["trial_number"] == 9:
+                task_data["suppression_confirmed"] = True
+            elif trial["trial_number"] == 10:
+                task_data.update({"tap_count": 3, "tap_times_ms": [100, 300, 500]})
             trials.append({
                 "session_id": session_id,
                 "trial_number": trial["trial_number"],
@@ -61,6 +72,14 @@ class FinalV2AnalysisTests(unittest.TestCase):
     def test_valid_complete_export_passes_quality_checks(self):
         quality = validate_data(self.sessions, self.trials)
         self.assertTrue(quality["passed"].all(), quality.loc[~quality["passed"]].to_dict("records"))
+
+    def test_impossible_response_time_fails_quality_checks(self):
+        self.trials.loc[self.trials["trial_number"].eq(1), "task_data"] = pd.Series([
+            {"response_ms": 999_999, "attempt_number": 1, "refresh_count": 0}
+        ], index=self.trials.index[self.trials["trial_number"].eq(1)])
+        quality = validate_data(self.sessions, self.trials)
+        response_check = quality.loc[quality["check"].eq("response_time_1")]
+        self.assertFalse(response_check["passed"].iloc[0])
 
     def test_spelling_review_only_suggests_presented_words(self):
         export = {"trials": [{

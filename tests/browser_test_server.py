@@ -45,6 +45,18 @@ def save_trial(trial: dict) -> dict:
     return stored
 
 
+def complete_trial(trial: dict) -> dict:
+    existing = next(
+        row
+        for row in trials
+        if row["session_id"] == trial["session_id"]
+        and row["trial_number"] == trial["trial_number"]
+    )
+    if not existing.get("completed"):
+        existing.update(trial)
+    return existing
+
+
 def get_session(session_id: str) -> dict | None:
     return sessions.get(session_id)
 
@@ -71,6 +83,7 @@ def complete_session(session_id: str) -> dict:
 
 main.save_session = save_session
 main.save_trial = save_trial
+main.complete_trial = complete_trial
 main.get_session = get_session
 main.get_trials = get_trials
 main.get_next_trial_number = get_next_trial_number

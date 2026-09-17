@@ -69,6 +69,7 @@ def validate_data(sessions: pd.DataFrame, trials: pd.DataFrame) -> pd.DataFrame:
         baseline_matches = {}
         for number, (experiment_type, condition, fixed_length) in EXPECTED_TRIALS.items():
             trial = by_number.loc[number]
+            task_data = trial["task_data"] or {}
             sequence = trial["presented_sequence"]
             length = len(sequence)
             structure_ok = (
@@ -85,6 +86,23 @@ def validate_data(sessions: pd.DataFrame, trials: pd.DataFrame) -> pd.DataFrame:
             saved = trial["score"] or {}
             shared = saved.keys() & recalculated.keys()
             add(session_id, f"score_{number}", bool(shared) and all(saved[key] == recalculated[key] for key in shared), "Saved metrics must match rescoring.")
+            response_limit_ms = 90_000 if experiment_type == "free_recall" else 30_000
+            response_ms = task_data.get("response_ms")
+            add(
+                session_id,
+                f"response_time_{number}",
+                isinstance(response_ms, (int, float)) and 0 <= response_ms <= response_limit_ms + 1_000,
+                f"Found response_ms={response_ms}; expected 0–{response_limit_ms + 1_000}.",
+            )
+            add(
+                session_id,
+                f"attempt_metadata_{number}",
+                isinstance(task_data.get("attempt_number"), int)
+                and task_data["attempt_number"] >= 1
+                and isinstance(task_data.get("refresh_count"), int)
+                and task_data["refresh_count"] >= 0,
+                f"Found attempt={task_data.get('attempt_number')}, refreshes={task_data.get('refresh_count')}.",
+            )
             if number in range(5, 9):
                 baseline_matches[number + 1] = recalculated["positional_matches"]
                 add(session_id, f"unique_letters_{number}", len(set(sequence)) == length, "Letters must not repeat within a sequence.")
@@ -95,6 +113,24 @@ def validate_data(sessions: pd.DataFrame, trials: pd.DataFrame) -> pd.DataFrame:
         for number in (9, 10):
             task_data = by_number.loc[number, "task_data"] or {}
             add(session_id, f"matched_baseline_{number}", task_data.get("matched_baseline_trial_number") == adaptive_length - 1, f"Expected trial {adaptive_length - 1}.")
+        suppression_data = by_number.loc[9, "task_data"] or {}
+        add(
+            session_id,
+            "suppression_compliance_recorded",
+            isinstance(suppression_data.get("suppression_confirmed"), bool),
+            f"Found suppression_confirmed={suppression_data.get('suppression_confirmed')}.",
+        )
+        tapping_data = by_number.loc[10, "task_data"] or {}
+        tap_times = tapping_data.get("tap_times_ms")
+        add(
+            session_id,
+            "tapping_evidence",
+            isinstance(tap_times, list)
+            and len(tap_times) > 0
+            and tapping_data.get("tap_count") == len(tap_times)
+            and all(isinstance(value, (int, float)) and value >= 0 for value in tap_times),
+            f"Found tap_count={tapping_data.get('tap_count')}, tap_times_ms={tap_times}.",
+        )
 
         chunk_sequence = by_number.loc[11, "presented_sequence"]
         chunk_data = by_number.loc[11, "task_data"] or {}

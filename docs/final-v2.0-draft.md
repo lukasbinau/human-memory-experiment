@@ -265,6 +265,16 @@ regardless of phase. Completing the trial updates the active row rather than
 creating a duplicate. The score endpoint validates the submitted stimulus
 against the active row, so a replaced presentation cannot later be submitted.
 
+The server accepts only the next incomplete trial and enforces the phase order
+`intro → presentation → response`. Trial completion conditionally updates only
+an active `completed=false` row, so concurrent submissions cannot overwrite the
+first saved response. Response times outside the protocol limit, allowing one
+second of client/network tolerance, are rejected.
+
+Finger tapping is available through the keyboard space bar and a touchscreen
+button. Tap timestamps are saved when presentation ends, before the response
+screen opens, so response-screen refresh does not discard them.
+
 The session is marked complete only after all 11 trials have been saved.
 Incomplete sessions and all timeout, blank-response, and compliance data remain
 stored and distinguishable. Inclusion and exclusion rules are decided during

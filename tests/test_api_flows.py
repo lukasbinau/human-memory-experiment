@@ -1,4 +1,5 @@
 import unittest
+import threading
 from unittest.mock import patch
 
 import pandas as pd
@@ -12,6 +13,7 @@ class InMemoryPersistence:
     def __init__(self):
         self.sessions = {}
         self.trials = []
+        self.lock = threading.Lock()
 
     def save_session(self, session: dict) -> dict:
         stored = {**session, "status": "started", "started_at": "2026-09-11T10:00:00Z"}
@@ -30,6 +32,17 @@ class InMemoryPersistence:
         stored = {**trial, "id": f"trial-{len(self.trials) + 1}"}
         self.trials.append(stored)
         return stored
+
+    def complete_trial(self, trial: dict) -> dict:
+        with self.lock:
+            existing = next(
+                row for row in self.trials
+                if row["session_id"] == trial["session_id"]
+                and row["trial_number"] == trial["trial_number"]
+            )
+            if not existing.get("completed"):
+                existing.update(trial)
+            return existing
 
     def get_session(self, session_id: str) -> dict | None:
         return self.sessions.get(session_id)
@@ -56,6 +69,7 @@ class ApiFlowTests(unittest.TestCase):
         self.patchers = [
             patch("backend.app.main.save_session", self.store.save_session),
             patch("backend.app.main.save_trial", self.store.save_trial),
+            patch("backend.app.main.complete_trial", self.store.complete_trial),
             patch("backend.app.main.get_next_trial_number", self.store.next_trial_number),
             patch("backend.app.main.get_session", self.store.get_session),
             patch("backend.app.main.get_trials", self.store.get_trials),
@@ -69,6 +83,40 @@ class ApiFlowTests(unittest.TestCase):
         self.client.close()
         for patcher in reversed(self.patchers):
             patcher.stop()
+
+    def complete_v2_free_trials(self, protocol: dict) -> None:
+        for condition in protocol["free_recall_conditions"]:
+            for phase in ("intro", "presentation", "response"):
+                self.client.post("/api/v2/trial/phase", json={
+                    "session_id": protocol["session_id"],
+                    "trial_number": condition["trial_number"],
+                    "phase": phase,
+                })
+            self.client.post("/api/v2/free-score", json={
+                "session_id": protocol["session_id"],
+                "presented_words": condition["words"],
+                "response": "",
+                "condition": condition["name"],
+                "trial_number": condition["trial_number"],
+            })
+
+    def complete_v2_baselines(self, protocol: dict) -> None:
+        self.complete_v2_free_trials(protocol)
+        for trial in protocol["serial_baseline_trials"]:
+            for phase in ("intro", "presentation", "response"):
+                self.client.post("/api/v2/trial/phase", json={
+                    "session_id": protocol["session_id"],
+                    "trial_number": trial["trial_number"],
+                    "phase": phase,
+                })
+            self.client.post("/api/v2/serial-score", json={
+                "session_id": protocol["session_id"],
+                "presented_sequence": trial["sequence"],
+                "response": "",
+                "trial_number": trial["trial_number"],
+                "condition": trial["condition"],
+                "experiment_part": trial["part"],
+            })
 
     def test_complete_final_protocol_and_analysis_contract(self):
         response = self.client.post("/api/final/start", json={"participant_code": "Integration Tester"})
@@ -174,6 +222,13 @@ class ApiFlowTests(unittest.TestCase):
         )
 
         for condition in protocol["free_recall_conditions"]:
+            for phase in ("intro", "presentation", "response"):
+                phase_response = self.client.post("/api/v2/trial/phase", json={
+                    "session_id": session_id,
+                    "trial_number": condition["trial_number"],
+                    "phase": phase,
+                })
+                self.assertEqual(phase_response.status_code, 200)
             score = self.client.post("/api/v2/free-score", json={
                 "session_id": session_id,
                 "presented_words": condition["words"],
@@ -191,6 +246,13 @@ class ApiFlowTests(unittest.TestCase):
             self.assertEqual(score.status_code, 200)
 
         for trial in protocol["serial_baseline_trials"]:
+            for phase in ("intro", "presentation", "response"):
+                phase_response = self.client.post("/api/v2/trial/phase", json={
+                    "session_id": session_id,
+                    "trial_number": trial["trial_number"],
+                    "phase": phase,
+                })
+                self.assertEqual(phase_response.status_code, 200)
             score = self.client.post("/api/v2/serial-score", json={
                 "session_id": session_id,
                 "presented_sequence": trial["sequence"],
@@ -208,6 +270,13 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual([trial["trial_number"] for trial in adaptive["trials"]], [9, 10, 11])
 
         for trial in adaptive["trials"]:
+            for phase in ("intro", "presentation", "response"):
+                phase_response = self.client.post("/api/v2/trial/phase", json={
+                    "session_id": session_id,
+                    "trial_number": trial["trial_number"],
+                    "phase": phase,
+                })
+                self.assertEqual(phase_response.status_code, 200)
             score = self.client.post("/api/v2/serial-score", json={
                 "session_id": session_id,
                 "presented_sequence": trial["sequence"],
@@ -227,8 +296,14 @@ class ApiFlowTests(unittest.TestCase):
         first_trial = self.store.get_trials(session_id)[0]
         self.assertEqual(first_trial["timing"]["response_limit_seconds"], 90)
         self.assertEqual(first_trial["task_data"]["response_ms"], 1234)
+        self.store.sessions[session_id]["status"] = "started"
+        state = self.client.get(f"/api/v2/{session_id}/state")
+        self.assertEqual(state.status_code, 200)
+        self.assertEqual(self.store.sessions[session_id]["status"], "completed")
+        self.store.sessions[session_id]["status"] = "started"
         results = self.client.get(f"/api/v2/{session_id}/results")
         self.assertEqual(results.status_code, 200)
+        self.assertEqual(self.store.sessions[session_id]["status"], "completed")
         result_data = results.json()
         self.assertEqual({key: result_data[key] for key in (
             "free_recall_recalled",
@@ -307,6 +382,12 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual(presentation_refresh["attempt_number"], 2)
         self.assertEqual(presentation_refresh["phase"], "intro")
 
+        presentation_phase = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 1,
+            "phase": "presentation",
+        })
+        self.assertEqual(presentation_phase.status_code, 200)
         response_phase = self.client.post("/api/v2/trial/phase", json={
             "session_id": session_id,
             "trial_number": 1,
@@ -339,6 +420,7 @@ class ApiFlowTests(unittest.TestCase):
             json={"participant_code": "Serial Recovery Tester"},
         ).json()
         session_id = protocol["session_id"]
+        self.complete_v2_free_trials(protocol)
         original = self.client.post("/api/v2/trial/phase", json={
             "session_id": session_id,
             "trial_number": 5,
@@ -356,6 +438,12 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual(regenerated["presentation_units"], list(regenerated["sequence"]))
         self.assertEqual(regenerated["attempt_number"], 2)
 
+        presentation = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 5,
+            "phase": "presentation",
+        })
+        self.assertEqual(presentation.status_code, 200)
         self.client.post("/api/v2/trial/phase", json={
             "session_id": session_id,
             "trial_number": 5,
@@ -365,6 +453,139 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual(response_refresh["sequence"], regenerated["sequence"])
         self.assertEqual(response_refresh["attempt_number"], 2)
         self.assertEqual(response_refresh["phase"], "response")
+
+    def test_v2_rejects_out_of_order_trials_and_illegal_phase_jumps(self):
+        protocol = self.client.post(
+            "/api/v2/start",
+            json={"participant_code": "State Tester"},
+        ).json()
+        session_id = protocol["session_id"]
+
+        out_of_order = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 4,
+            "phase": "intro",
+        })
+        self.assertEqual(out_of_order.status_code, 409)
+
+        prepared = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 1,
+            "phase": "intro",
+        })
+        self.assertEqual(prepared.status_code, 200)
+        jump = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 1,
+            "phase": "response",
+        })
+        self.assertEqual(jump.status_code, 409)
+
+    def test_v2_rejects_impossible_response_time(self):
+        protocol = self.client.post(
+            "/api/v2/start",
+            json={"participant_code": "Timing Integrity Tester"},
+        ).json()
+        session_id = protocol["session_id"]
+        trial = None
+        for phase in ("intro", "presentation", "response"):
+            trial = self.client.post("/api/v2/trial/phase", json={
+                "session_id": session_id,
+                "trial_number": 1,
+                "phase": phase,
+            }).json()
+        score = self.client.post("/api/v2/free-score", json={
+            "session_id": session_id,
+            "presented_words": trial["words"],
+            "response": "",
+            "condition": trial["name"],
+            "trial_number": 1,
+            "task_data": {"response_ms": 999_999_999},
+        })
+        self.assertEqual(score.status_code, 400)
+        self.assertFalse(self.store.get_trials(session_id)[0]["completed"])
+
+    def test_v2_response_phase_preserves_tapping_metadata(self):
+        protocol = self.client.post(
+            "/api/v2/start",
+            json={"participant_code": "Tapping Recovery Tester"},
+        ).json()
+        session_id = protocol["session_id"]
+        self.complete_v2_baselines(protocol)
+        adaptive_trials = self.client.post(
+            "/api/v2/adaptive",
+            json={"session_id": session_id},
+        ).json()["trials"]
+        suppression = adaptive_trials[0]
+        for phase in ("intro", "presentation", "response"):
+            self.client.post("/api/v2/trial/phase", json={
+                "session_id": session_id,
+                "trial_number": 9,
+                "phase": phase,
+            })
+        self.client.post("/api/v2/serial-score", json={
+            "session_id": session_id,
+            "presented_sequence": suppression["sequence"],
+            "response": "",
+            "trial_number": 9,
+            "condition": suppression["condition"],
+            "experiment_part": suppression["part"],
+        })
+        tapping = adaptive_trials[1]
+        for phase in ("intro", "presentation"):
+            phase_response = self.client.post("/api/v2/trial/phase", json={
+                "session_id": session_id,
+                "trial_number": 10,
+                "phase": phase,
+            })
+            self.assertEqual(phase_response.status_code, 200)
+        response = self.client.post("/api/v2/trial/phase", json={
+            "session_id": session_id,
+            "trial_number": 10,
+            "phase": "response",
+            "task_data": {"tap_count": 3, "tap_times_ms": [100, 300, 500]},
+        })
+        self.assertEqual(response.status_code, 200)
+        recovered = self.client.post(f"/api/v2/{session_id}/recover").json()["active_trial"]
+        self.assertEqual(recovered["tap_times_ms"], [100, 300, 500])
+        self.assertEqual(recovered["tap_count"], 3)
+
+    def test_v2_first_concurrent_submission_wins(self):
+        protocol = self.client.post(
+            "/api/v2/start",
+            json={"participant_code": "Concurrency Tester"},
+        ).json()
+        session_id = protocol["session_id"]
+        trial = None
+        for phase in ("intro", "presentation", "response"):
+            trial = self.client.post("/api/v2/trial/phase", json={
+                "session_id": session_id,
+                "trial_number": 1,
+                "phase": phase,
+            }).json()
+        payload = {
+            "session_id": session_id,
+            "presented_words": trial["words"],
+            "condition": trial["name"],
+            "trial_number": 1,
+        }
+        barrier = threading.Barrier(2)
+
+        def submit(response_text):
+            barrier.wait()
+            return self.client.post("/api/v2/free-score", json={**payload, "response": response_text})
+
+        first = threading.Thread(target=submit, args=(trial["words"][0],))
+        second = threading.Thread(target=submit, args=("",))
+        first.start()
+        second.start()
+        first.join()
+        second.join()
+        stored = self.store.get_trials(session_id)[0]
+        stored_response = stored["raw_response"]
+        retry = self.client.post("/api/v2/free-score", json={**payload, "response": "different"})
+        self.assertEqual(retry.status_code, 200)
+        self.assertEqual(self.store.get_trials(session_id)[0]["raw_response"], stored_response)
 
     def test_unknown_timing_pair_returns_client_error(self):
         response = self.client.post("/api/timing-test/pair", json={"session_id": "missing", "pair_id": "not-a-pair"})
