@@ -59,6 +59,7 @@ p {
 }
 
 .intro.small { font-size: 1rem; }
+.completion-note { margin-right: auto; margin-left: auto; text-align: center; }
 .kicker, .progress, label, .muted, .score-grid span { font-family: Arial, sans-serif; }
 .kicker { color: #1f5c4a; font-size: 0.8rem; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; }
 .muted { color: #65756b; font-size: 0.85rem; }

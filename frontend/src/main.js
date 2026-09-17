@@ -382,7 +382,7 @@ function showSerialResult() {
   const isLast = conditionIndex === session.trials.length - 1;
   const trialNumber = session.trials[conditionIndex].trial_number;
   const nextLabel = isLast ? (trialNumber === 8 ? 'Fortsæt' : 'Se resultater') : 'Næste forsøg';
-  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Forsøg ${trialNumber} af ${totalMainTrials} er færdigt</p><h1>Dit svar er gemt.</h1><p class="intro small">Fortsæt, når du er klar.</p><button type="button" id="serial-next-button">${nextLabel}</button></section>`;
+  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Forsøg ${trialNumber} af ${totalMainTrials} er færdigt</p><h1>Dit svar er gemt.</h1><p class="intro small completion-note">Fortsæt, når du er klar.</p><button type="button" id="serial-next-button">${nextLabel}</button></section>`;
   document.querySelector('#serial-next-button').addEventListener('click', async () => {
     if (isLast && trialNumber === 8) {
       await loadAdaptiveTrials();
@@ -411,7 +411,7 @@ function showInstructions() {
   app.innerHTML = `
     <section class="panel narrow">
       <p class="kicker">Inden vi begynder</p>
-      <h1>To slags hukommelsesopgaver.</h1>
+      <h1>To slags hukommelses&shy;opgaver.</h1>
       <ol class="instructions">
         <li>I den første del skal du huske ord og skrive dem i vilkårlig rækkefølge.</li>
         <li>I den anden del skal du huske bogstaver og skrive dem i den viste rækkefølge.</li>
@@ -695,7 +695,7 @@ function showTimingConditionComplete() {
 function showConditionComplete() {
   resumeAction = showConditionComplete;
   const isLast = conditionIndex === session.conditions.length - 1;
-  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Forsøg ${session.conditions[conditionIndex].trial_number} af ${totalMainTrials} er færdigt</p><h1>Dit svar er gemt.</h1><p class="intro small">Fortsæt, når du er klar.</p><button type="button" id="next-button">${isLast ? 'Fortsæt til pausen' : 'Næste forsøg'}</button></section>`;
+  app.innerHTML = `<section class="panel narrow centered"><p class="kicker">Forsøg ${session.conditions[conditionIndex].trial_number} af ${totalMainTrials} er færdigt</p><h1>Dit svar er gemt.</h1><p class="intro small completion-note">Fortsæt, når du er klar.</p><button type="button" id="next-button">${isLast ? 'Fortsæt til pausen' : 'Næste forsøg'}</button></section>`;
   document.querySelector('#next-button').addEventListener('click', () => {
     if (isLast) showSectionBreak();
     else { conditionIndex += 1; showRest(startCondition); }
