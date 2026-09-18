@@ -667,6 +667,10 @@ async function finishRecall() {
   window.clearInterval(timer);
   document.querySelector('.skip-button')?.remove();
   const condition = session.conditions[conditionIndex];
+  const pendingResponse = document.querySelector('#recall-response').value.trim();
+  if (pendingResponse) {
+    recalledWords.push({ word: pendingResponse, submittedAt: Math.round(performance.now() - recallStartedAt) });
+  }
   const rawResponse = recalledWords.map((entry) => entry.word).join(', ');
   const responseMs = Math.round(performance.now() - recallStartedAt);
   try {
