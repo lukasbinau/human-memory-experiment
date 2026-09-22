@@ -13,6 +13,11 @@ short_description: DTU human memory experiment pilot
 
 Human-memory experiment app for the DTU course 02464 Artificial Intelligence and Human Cognition.
 
+## Current data snapshot
+
+The latest anonymized dataset, quality assessment, export manifest, and analysis
+handoff are bundled in [FINAL_V2_DATA_2026-09-22](FINAL_V2_DATA_2026-09-22/README.md).
+
 ## Project layout
 
 - `frontend/`: Vite participant interface

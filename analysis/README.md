@@ -24,6 +24,7 @@ python analysis/export_final_v2_supabase.py --snapshot-date YYYY-MM-DD
 
 The identifiable source and participant mapping are written below the ignored
 `exports/` directory. The shareable copy preserves the Supabase table structure
-with anonymized participant/session/trial identifiers under `analysis/data/`.
+with anonymized participant/session/trial identifiers in a dated
+`FINAL_V2_DATA_YYYY-MM-DD/` folder at the repository root.
 
 Never combine protocol versions in one primary analysis.

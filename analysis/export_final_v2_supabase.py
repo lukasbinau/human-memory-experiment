@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--protocol-version", default=PROTOCOL_VERSION)
     parser.add_argument("--snapshot-date", default=datetime.now(timezone.utc).date().isoformat())
     parser.add_argument("--private-root", type=Path, default=ROOT / "exports")
-    parser.add_argument("--public-root", type=Path, default=ROOT / "analysis" / "data")
+    parser.add_argument("--public-root", type=Path, default=ROOT)
     return parser.parse_args()
 
 
@@ -220,7 +220,7 @@ def main() -> None:
     sessions, trials = fetch_protocol_data(args.protocol_version)
     exported_at = datetime.now(timezone.utc).isoformat()
     private_directory = args.private_root / f"{args.protocol_version}_{args.snapshot_date}"
-    public_directory = args.public_root / f"{args.protocol_version}_{args.snapshot_date}"
+    public_directory = args.public_root / f"FINAL_V2_DATA_{args.snapshot_date}"
     raw_export = {"sessions": sessions, "trials": trials}
     anonymized_export, private_mapping = anonymize(sessions, trials)
     quality = build_quality_assessment(sessions, trials, args.protocol_version)

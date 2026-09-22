@@ -180,7 +180,7 @@ Python example:
 import json
 from pathlib import Path
 
-directory = Path("analysis/data/final-v2.1-draft_2026-09-22")
+directory = Path("FINAL_V2_DATA_2026-09-22")
 data = json.loads((directory / "supabase_export_anonymized.json").read_text(encoding="utf-8"))
 quality = json.loads((directory / "quality_assessment.json").read_text(encoding="utf-8"))
 
@@ -202,7 +202,8 @@ python analysis/export_final_v2_supabase.py --snapshot-date YYYY-MM-DD
 ```
 
 This creates an ignored identifiable snapshot under `exports/` and a shareable
-anonymized snapshot under `analysis/data/`. Review the generated quality report
+anonymized snapshot in a `FINAL_V2_DATA_YYYY-MM-DD/` folder at the repository
+root. Review the generated quality report
 and privacy checks before committing a future snapshot.
 
 ## Context for another AI assistant
