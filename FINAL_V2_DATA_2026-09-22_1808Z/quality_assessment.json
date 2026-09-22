@@ -1,0 +1,613 @@
+{
+  "protocol_version": "final-v2.1-draft",
+  "sessions": [
+    {
+      "participant_id": "P001",
+      "session_id": "d9bde335-3e3e-52eb-b2ed-c5696b701014",
+      "session_status": "started",
+      "trial_count": 1,
+      "completed_trial_count": 0,
+      "is_test_session": true,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "known_test_session",
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P002",
+      "session_id": "b0157437-87f8-5750-b6d5-6538d9de00ce",
+      "session_status": "started",
+      "trial_count": 1,
+      "completed_trial_count": 0,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P003",
+      "session_id": "57b152e5-ca4e-53af-b015-b2801cb0d8b3",
+      "session_status": "started",
+      "trial_count": 4,
+      "completed_trial_count": 3,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P004",
+      "session_id": "207ea6bd-f5d1-5a48-ad85-dcd1ee7af906",
+      "session_status": "started",
+      "trial_count": 7,
+      "completed_trial_count": 6,
+      "is_test_session": true,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "known_test_session",
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P005",
+      "session_id": "b2473460-3931-50f7-87ee-eff49519484e",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": true,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "known_test_session"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P006",
+      "session_id": "daccabe8-aacd-5b84-931c-c324fa178e4f",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P007",
+      "session_id": "18a64330-82b0-589a-bb71-c568626711c3",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": true,
+      "failed_validation_checks": [
+        {
+          "check": "tapping_evidence",
+          "detail": "Found tap_count=0, tap_times_ms=[]."
+        }
+      ],
+      "exclusion_reasons": [
+        "all_free_recall_responses_empty_known_ui_risk",
+        "suppression_not_performed",
+        "finger_tapping_evidence_missing"
+      ],
+      "usable": {
+        "complete_session": true,
+        "free_recall": false,
+        "serial_baseline": true,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": true,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P008",
+      "session_id": "425ebdb3-5e64-5e17-b031-cc11226c581a",
+      "session_status": "started",
+      "trial_count": 1,
+      "completed_trial_count": 1,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P009",
+      "session_id": "46d2ef47-5387-54e3-b22d-ee9a2dea539d",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": true,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "all_free_recall_responses_empty_known_ui_risk"
+      ],
+      "usable": {
+        "complete_session": true,
+        "free_recall": false,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P010",
+      "session_id": "921f8da4-8599-5cc8-bae2-4d294fec3da7",
+      "session_status": "started",
+      "trial_count": 1,
+      "completed_trial_count": 0,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P011",
+      "session_id": "40dc0053-d8de-503e-97d0-72100216626b",
+      "session_status": "started",
+      "trial_count": 1,
+      "completed_trial_count": 0,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P012",
+      "session_id": "d07ce2a9-18fd-57eb-8e0b-d8882aff9d24",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P013",
+      "session_id": "a875385c-3c9c-5b1b-941d-5ac7657263f8",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P014",
+      "session_id": "c091931f-4a0a-5427-b670-c55dd5026456",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P015",
+      "session_id": "d7df6c9a-1e53-51b1-8101-067e2ba7cd39",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P016",
+      "session_id": "4cfd60b7-6f7c-55b4-82ba-f37e7eece4de",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P017",
+      "session_id": "344feb67-7a82-5f24-a37b-1a139db9bc75",
+      "session_status": "started",
+      "trial_count": 2,
+      "completed_trial_count": 1,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P018",
+      "session_id": "4debede7-73d9-5b80-af73-50a851aa6c42",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P019",
+      "session_id": "653affc5-d21b-5de7-a9ca-8cb7972d1f38",
+      "session_status": "started",
+      "trial_count": 2,
+      "completed_trial_count": 2,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P020",
+      "session_id": "5b92b799-f551-5bba-b8cf-c0ebd1a50a62",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P021",
+      "session_id": "46479116-e7e3-5a2e-abe7-f2f73adb4d83",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [
+        {
+          "check": "tapping_evidence",
+          "detail": "Found tap_count=0, tap_times_ms=[]."
+        }
+      ],
+      "exclusion_reasons": [
+        "finger_tapping_evidence_missing"
+      ],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": false,
+        "chunking": true,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P022",
+      "session_id": "f0a63592-8a04-5474-86b0-e9114fe3ce9c",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P023",
+      "session_id": "bb283614-7e8e-57fc-9328-a4344be27dc2",
+      "session_status": "started",
+      "trial_count": 2,
+      "completed_trial_count": 1,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [
+        "session_not_completed"
+      ],
+      "usable": {
+        "complete_session": false,
+        "free_recall": false,
+        "serial_baseline": false,
+        "articulatory_suppression": false,
+        "finger_tapping": false,
+        "chunking": false,
+        "all_sections": false
+      }
+    },
+    {
+      "participant_id": "P024",
+      "session_id": "4550114b-0ced-5bd4-994f-7f10eeaffa6c",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P025",
+      "session_id": "808ec547-d6ba-5d89-a036-d01e5745b16a",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P026",
+      "session_id": "41a7486f-3ff0-590e-8b53-86d66eb80231",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P027",
+      "session_id": "a9551002-d286-5d11-8bc1-b415f31fedc5",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    },
+    {
+      "participant_id": "P028",
+      "session_id": "c85ea0ae-7d32-5947-baba-e419419f890d",
+      "session_status": "completed",
+      "trial_count": 11,
+      "completed_trial_count": 11,
+      "is_test_session": false,
+      "all_free_recall_responses_empty": false,
+      "failed_validation_checks": [],
+      "exclusion_reasons": [],
+      "usable": {
+        "complete_session": true,
+        "free_recall": true,
+        "serial_baseline": true,
+        "articulatory_suppression": true,
+        "finger_tapping": true,
+        "chunking": true,
+        "all_sections": true
+      }
+    }
+  ],
+  "exported_at": "2026-09-22T18:08:26.013023+00:00",
+  "counts": {
+    "sessions": 28,
+    "trials": 220,
+    "completed_sessions": 18
+  }
+}

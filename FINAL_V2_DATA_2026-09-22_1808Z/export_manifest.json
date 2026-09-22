@@ -1,0 +1,9 @@
+{
+  "exported_at": "2026-09-22T18:08:26.013023+00:00",
+  "protocol_version": "final-v2.1-draft",
+  "source": "Supabase sessions and trials tables",
+  "sessions": 28,
+  "trials": 220,
+  "completed_sessions": 18,
+  "anonymization": "participant_code replaced by participant_id; session and trial UUIDs replaced deterministically"
+}

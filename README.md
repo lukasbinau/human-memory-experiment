@@ -16,7 +16,10 @@ Human-memory experiment app for the DTU course 02464 Artificial Intelligence and
 ## Current data snapshot
 
 The latest anonymized dataset, quality assessment, export manifest, and analysis
-handoff are bundled in [FINAL_V2_DATA_2026-09-22](FINAL_V2_DATA_2026-09-22/README.md).
+handoff are bundled in
+[FINAL_V2_DATA_2026-09-22_1808Z](FINAL_V2_DATA_2026-09-22_1808Z/README.md).
+The preceding snapshot remains archived in
+[FINAL_V2_DATA_2026-09-22](FINAL_V2_DATA_2026-09-22/README.md).
 
 ## Project layout
 
