@@ -16,4 +16,14 @@ python analysis/run_final_v2_analysis.py --input exports/final_v2_export.json
 python analysis/review_spelling.py --input exports/final_v2_export.json
 ```
 
+Create a standardized current-protocol Supabase snapshot with:
+
+```text
+python analysis/export_final_v2_supabase.py --snapshot-date YYYY-MM-DD
+```
+
+The identifiable source and participant mapping are written below the ignored
+`exports/` directory. The shareable copy preserves the Supabase table structure
+with anonymized participant/session/trial identifiers under `analysis/data/`.
+
 Never combine protocol versions in one primary analysis.
